@@ -1,0 +1,702 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Library Appointment and Queue Management System</title>
+<link rel="stylesheet" href="style.css">
+<body>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav>
+    <a href="#login">Login</a>
+    <a href="#dashboard">Home</a>
+    <a href="#appointments">Appointments</a>
+    <a href="#queue">Queue Status</a>
+    <a href="#books">Books</a>
+    <a href="#borrowing">Borrowing</a>
+    <a href="#history">History</a>
+    <a href="#notifications">Notifications</a>
+    <a href="#librarian">Librarian</a>
+    <a href="#admin">Admin</a>
+    <a href="#reports">Reports</a>
+</nav>
+
+
+<!-- LOGIN AND REGISTRATION PAGE -->
+
+<section class="page" id="login">
+
+    <div class="login-container">
+
+        <h2>Library System Login</h2>
+
+        <label>Username</label>
+        <input type="text" placeholder="Enter username">
+
+        <label>Password</label>
+        <input type="password" placeholder="Enter password">
+
+        <button>Login</button>
+
+        <button class="secondary">Register</button>
+
+        <p style="text-align:center; margin-top:15px;">
+            Library Appointment and Queue Management System
+        </p>
+
+    </div>
+
+</section>
+
+
+<!-- HOME DASHBOARD -->
+
+<section class="page" id="dashboard">
+
+    <h2>Home Dashboard</h2>
+
+    <div class="placeholder" style="text-align:center;">
+        <h2>Welcome to the Library!</h2>
+        <p>Manage your library appointments, books, and queue status.</p>
+    </div>
+
+    <h3>Quick Access</h3>
+
+    <div class="card-container">
+
+        <div class="card">
+            <h3>Books</h3>
+            <p>Search and check book availability.</p>
+            <button>Browse Books</button>
+        </div>
+
+        <div class="card">
+            <h3>Appointments</h3>
+            <p>Schedule your library visit.</p>
+            <button>Book Appointment</button>
+        </div>
+
+        <div class="card">
+            <h3>Queue Status</h3>
+            <p>Check your current queue position.</p>
+            <button>View Queue</button>
+        </div>
+
+        <div class="card">
+            <h3>History</h3>
+            <p>View previous borrowing records.</p>
+            <button>View History</button>
+        </div>
+
+    </div>
+
+    <h3>Announcements</h3>
+
+    <div class="placeholder">
+        <p>No announcements available.</p>
+    </div>
+
+</section>
+
+
+<!-- ONLINE APPOINTMENT BOOKING PAGE -->
+
+<section class="page" id="appointments">
+
+    <h2>Online Appointment Booking</h2>
+
+    <h3>Select Appointment Date</h3>
+
+    <div class="placeholder">
+
+        <h3>November 2026</h3>
+
+        <div class="calendar">
+            <div class="day">Sun</div>
+            <div class="day">Mon</div>
+            <div class="day">Tue</div>
+            <div class="day">Wed</div>
+            <div class="day">Thu</div>
+            <div class="day">Fri</div>
+            <div class="day">Sat</div>
+
+            <div>1</div><div>2</div><div>3</div>
+            <div>4</div><div>5</div><div>6</div><div>7</div>
+            <div>8</div><div>9</div><div>10</div>
+            <div>11</div><div>12</div><div>13</div><div>14</div>
+            <div>15</div><div>16</div><div>17</div>
+            <div>18</div><div>19</div><div>20</div><div>21</div>
+            <div>22</div><div>23</div><div>24</div>
+            <div>25</div><div>26</div><div>27</div><div>28</div>
+            <div>29</div><div>30</div>
+        </div>
+
+    </div>
+
+    <h3>Available Time Slots</h3>
+
+    <select>
+        <option>Select Time Slot</option>
+        <option>8:00 AM - 9:00 AM</option>
+        <option>9:00 AM - 10:00 AM</option>
+        <option>10:00 AM - 11:00 AM</option>
+        <option>1:00 PM - 2:00 PM</option>
+        <option>2:00 PM - 3:00 PM</option>
+    </select>
+
+    <h3>Appointment Details</h3>
+
+    <label>Student Name</label>
+    <input type="text" placeholder="Enter student name">
+
+    <label>Student ID</label>
+    <input type="text" placeholder="Enter student ID">
+
+    <label>Purpose of Visit</label>
+    <select>
+        <option>Select Purpose</option>
+        <option>Book Borrowing</option>
+        <option>Book Returning</option>
+        <option>Research</option>
+        <option>Other</option>
+    </select>
+
+    <button>Book Appointment</button>
+
+</section>
+
+
+<!-- QUEUE MANAGEMENT PAGE -->
+
+<section class="page" id="queue">
+
+    <h2>Queue Management</h2>
+
+    <div class="card-container">
+
+        <div class="card">
+            <h3>Your Queue Number</h3>
+            <h1>Q-025</h1>
+        </div>
+
+        <div class="card">
+            <h3>Current Queue</h3>
+            <h1>Q-020</h1>
+        </div>
+
+        <div class="card">
+            <h3>Estimated Waiting Time</h3>
+            <h1>15 Minutes</h1>
+        </div>
+
+    </div>
+
+    <h3>Queue Status</h3>
+
+    <div class="placeholder">
+        <p><strong>Current Status:</strong>
+        <span class="status">Waiting in Line</span></p>
+
+        <p>There are currently 4 people ahead of you.</p>
+    </div>
+
+    <button>Refresh Queue Status</button>
+
+</section>
+
+
+<!-- BOOK SEARCH AND AVAILABILITY PAGE -->
+
+<section class="page" id="books">
+
+    <h2>Book Search and Availability</h2>
+
+    <input type="text" placeholder="Search for books...">
+
+    <h3>Filter Options</h3>
+
+    <div class="card-container">
+
+        <div>
+            <label>Search by Title</label>
+            <input type="text" placeholder="Book title">
+        </div>
+
+        <div>
+            <label>Search by Author</label>
+            <input type="text" placeholder="Author name">
+        </div>
+
+        <div>
+            <label>Category</label>
+            <select>
+                <option>All Categories</option>
+                <option>Science</option>
+                <option>Mathematics</option>
+                <option>History</option>
+                <option>Technology</option>
+                <option>Literature</option>
+            </select>
+        </div>
+
+    </div>
+
+    <button>Search Books</button>
+
+    <h3>Book List</h3>
+
+    <table>
+        <tr>
+            <th>Book ID</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Category</th>
+            <th>Availability</th>
+        </tr>
+
+        <tr>
+            <td>B001</td>
+            <td>Introduction to Programming</td>
+            <td>Mark Yuson</td>
+            <td>Technology</td>
+            <td class="status">Available</td>
+        </tr>
+
+        <tr>
+            <td>B002</td>
+            <td>Basic Mathematics</td>
+            <td>Althea De Roma</td>
+            <td>Mathematics</td>
+            <td>Borrowed</td>
+        </tr>
+
+        <tr>
+            <td>B003</td>
+            <td>World History</td>
+            <td>Justin Baroro</td>
+            <td>History</td>
+            <td class="status">Available</td>
+        </tr>
+    </table>
+
+</section>
+
+
+<!-- BOOK BORROWING AND RETURN PAGE -->
+
+<section class="page" id="borrowing">
+
+    <h2>Book Borrowing and Return</h2>
+
+    <h3>Borrowed Book Information</h3>
+
+    <table>
+        <tr>
+            <th>Book ID</th>
+            <th>Book Title</th>
+            <th>Student Name</th>
+            <th>Borrow Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+        </tr>
+
+        <tr>
+            <td>B002</td>
+            <td>Basic Mathematics</td>
+            <td>Althea De Roma</td>
+            <td>11/05/2026</td>
+            <td>11/19/2026</td>
+            <td>Borrowed</td>
+        </tr>
+    </table>
+
+    <h3>Book Details</h3>
+
+    <label>Book ID</label>
+    <input type="text" placeholder="Enter book ID">
+
+    <label>Book Title</label>
+    <input type="text" placeholder="Enter book title">
+
+    <label>Student ID</label>
+    <input type="text" placeholder="Enter student ID">
+
+    <label>Transaction Date</label>
+    <input type="date">
+
+    <button>Borrow Book</button>
+    <button class="secondary">Return Book</button>
+
+</section>
+
+
+<!-- BORROWING HISTORY PAGE -->
+
+<section class="page" id="history">
+
+    <h2>Borrowing History</h2>
+
+    <h3>Student Information</h3>
+
+    <div class="card-container">
+
+        <div class="card">
+            <h3>Student Name</h3>
+            <p>Mark Yuson</p>
+        </div>
+
+        <div class="card">
+            <h3>Student ID</h3>
+            <p>2026-0001</p>
+        </div>
+
+        <div class="card">
+            <h3>Total Borrowed Books</h3>
+            <p>5 Books</p>
+        </div>
+
+    </div>
+
+    <h3>Previous Borrowing Records</h3>
+
+    <table>
+        <tr>
+            <th>Book ID</th>
+            <th>Book Title</th>
+            <th>Borrowing Date</th>
+            <th>Return Date</th>
+            <th>Status</th>
+        </tr>
+
+        <tr>
+            <td>B001</td>
+            <td>Introduction to Programming</td>
+            <td>10/01/2026</td>
+            <td>10/15/2026</td>
+            <td>Returned</td>
+        </tr>
+
+        <tr>
+            <td>B002</td>
+            <td>Basic Mathematics</td>
+            <td>11/05/2026</td>
+            <td>--</td>
+            <td>Borrowed</td>
+        </tr>
+    </table>
+
+</section>
+
+
+<!-- NOTIFICATIONS AND REMINDERS PAGE -->
+
+<section class="page" id="notifications">
+
+    <h2>Notifications and Reminders</h2>
+
+    <h3>Notification Center</h3>
+
+    <div class="placeholder">
+        <h3>Appointment Confirmation</h3>
+        <p>Your library appointment has been scheduled.</p>
+        <small>November 10, 2026</small>
+    </div>
+
+    <div class="placeholder">
+        <h3>Queue Update</h3>
+        <p>Your queue number is Q-025.</p>
+        <small>November 10, 2026</small>
+    </div>
+
+    <div class="placeholder">
+        <h3>Book Return Reminder</h3>
+        <p>Please remember to return your borrowed book before its due date.</p>
+        <small>November 10, 2026</small>
+    </div>
+
+</section>
+
+
+<!-- LIBRARIAN DASHBOARD -->
+
+<section class="page" id="librarian">
+
+    <h2>Librarian Dashboard</h2>
+
+    <div class="sidebar-layout">
+
+        <aside class="sidebar">
+            <h3 style="color:white;">Librarian Menu</h3>
+            <a href="#librarian">Dashboard</a>
+            <a href="#appointments">Appointments</a>
+            <a href="#queue">Queue Monitoring</a>
+            <a href="#books">Book Inventory</a>
+            <a href="#borrowing">Borrowing Records</a>
+            <a href="#reports">Reports</a>
+            <a href="#login">Logout</a>
+        </aside>
+
+        <div class="main-content">
+
+            <h3>Welcome, Librarian!</h3>
+
+            <div class="card-container">
+
+                <div class="card">
+                    <h3>Appointments</h3>
+                    <h2>12</h2>
+                    <p>Scheduled today</p>
+                </div>
+
+                <div class="card">
+                    <h3>Queue</h3>
+                    <h2>8</h2>
+                    <p>Students waiting</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total Books</h3>
+                    <h2>500</h2>
+                    <p>Registered books</p>
+                </div>
+
+                <div class="card">
+                    <h3>Borrowed Books</h3>
+                    <h2>45</h2>
+                    <p>Currently borrowed</p>
+                </div>
+
+            </div>
+
+            <h3>Appointment Management</h3>
+
+            <table>
+                <tr>
+                    <th>Student</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td>Mark Yuson</td>
+                    <td>11/10/2026</td>
+                    <td>9:00 AM</td>
+                    <td>Pending</td>
+                </tr>
+            </table>
+
+            <h3>Queue Monitoring</h3>
+
+            <div class="placeholder">
+                <p>Current Queue: Q-020</p>
+                <p>Next Queue: Q-021</p>
+            </div>
+
+            <h3>Book Inventory</h3>
+
+            <div class="placeholder">
+                <p>Total Books: 500</p>
+                <p>Available Books: 455</p>
+                <p>Borrowed Books: 45</p>
+            </div>
+
+            <h3>Statistics and Reports</h3>
+
+            <div class="placeholder">
+                <p>Library Activity Statistics and Reports Placeholder</p>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ADMIN MANAGEMENT PAGE -->
+
+<section class="page" id="admin">
+
+    <h2>Admin Management</h2>
+
+    <div class="sidebar-layout">
+
+        <aside class="sidebar">
+            <h3 style="color:white;">Admin Menu</h3>
+            <a href="#admin">Dashboard</a>
+            <a href="#users">User Management</a>
+            <a href="#settings">System Settings</a>
+            <a href="#reports">Reports and Records</a>
+            <a href="#login">Logout</a>
+        </aside>
+
+        <div class="main-content">
+
+            <h3>Administrator Dashboard</h3>
+
+            <div class="card-container">
+
+                <div class="card">
+                    <h3>Registered Users</h3>
+                    <h2>250</h2>
+                </div>
+
+                <div class="card">
+                    <h3>Librarians</h3>
+                    <h2>10</h2>
+                </div>
+
+                <div class="card">
+                    <h3>Administrators</h3>
+                    <h2>2</h2>
+                </div>
+
+            </div>
+
+            <h3 id="users">User Management</h3>
+
+            <table>
+                <tr>
+                    <th>User ID</th>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                </tr>
+
+                <tr>
+                    <td>001</td>
+                    <td>Mark Yuson</td>
+                    <td>mark123</td>
+                    <td>Student</td>
+                    <td>Active</td>
+                </tr>
+
+                <tr>
+                    <td>002</td>
+                    <td>Maria V</td>
+                    <td>maria123</td>
+                    <td>Librarian</td>
+                    <td>Active</td>
+                </tr>
+            </table>
+
+            <button>Add User</button>
+            <button class="secondary">Edit User</button>
+            <button class="secondary">Delete User</button>
+
+            <h3 id="settings">System Settings</h3>
+
+            <div class="placeholder">
+
+                <label>Library Operating Hours</label>
+                <input type="text" placeholder="8:00 AM - 5:00 PM">
+
+                <label>Maximum Appointment Capacity</label>
+                <input type="number" placeholder="Enter capacity">
+
+                <label>System Name</label>
+                <input type="text" placeholder="Library Management System">
+
+                <button>Save Settings</button>
+
+            </div>
+
+            <h3>Reports and Records</h3>
+
+            <div class="placeholder">
+                <p>System Activity and User Records Placeholder</p>
+                <button>View Reports</button>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- RECORD MANAGEMENT AND REPORTS PAGE -->
+
+<section class="page" id="reports">
+
+    <h2>Record Management and Reports</h2>
+
+    <h3>Report Filters</h3>
+
+    <div class="card-container">
+
+        <div>
+            <label>Report Type</label>
+            <select>
+                <option>Select Report</option>
+                <option>Borrowed Books</option>
+                <option>Returned Books</option>
+                <option>Appointments</option>
+                <option>Registered Users</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Start Date</label>
+            <input type="date">
+        </div>
+
+        <div>
+            <label>End Date</label>
+            <input type="date">
+        </div>
+
+    </div>
+
+    <button>Generate Report</button>
+
+    <h3>Report Data</h3>
+
+    <table>
+        <tr>
+            <th>Record ID</th>
+            <th>Student Name</th>
+            <th>Book Title</th>
+            <th>Transaction Type</th>
+            <th>Date</th>
+        </tr>
+
+        <tr>
+            <td>R001</td>
+            <td>Mark Yuson</td>
+            <td>Introduction to Programming</td>
+            <td>Borrowed</td>
+            <td>11/05/2026</td>
+        </tr>
+
+        <tr>
+            <td>R002</td>
+            <td>Maria V</td>
+            <td>World History</td>
+            <td>Returned</td>
+            <td>11/06/2026</td>
+        </tr>
+    </table>
+
+    <h3>Report Actions</h3>
+
+    <button>Download Report</button>
+    <button class="secondary">Print Report</button>
+
+</section>
+
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+</body>
+</html>

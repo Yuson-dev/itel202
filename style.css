@@ -1,0 +1,286 @@
+
+/* GENERAL SETTINGS */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #f1f4f2;
+    color: #333;
+}
+
+:root {
+    --primary: #285b49;
+    --secondary: #39785e;
+    --light: #e8f0eb;
+    --border: #ddd;
+}
+
+
+/* HEADER */
+
+header {
+    background: var(--primary);
+    color: white;
+    padding: 20px 35px;
+}
+
+header h2 {
+    margin-bottom: 5px;
+}
+
+
+/* NAVIGATION BAR */
+
+nav {
+    background: white;
+    padding: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+nav a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+nav a:hover {
+    color: var(--secondary);
+}
+
+
+/* PAGE CONTAINER */
+
+.page {
+    background: white;
+    max-width: 1150px;
+    margin: 30px auto;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #00000010;
+}
+
+.page h2 {
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+.page h3 {
+    margin: 20px 0 12px;
+}
+
+
+/* INPUT FIELDS */
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 15px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+}
+
+label {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+
+/* BUTTONS */
+
+button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+button.secondary {
+    background: #777;
+}
+
+
+/* TABLES */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th,
+td {
+    padding: 13px;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+th {
+    background: var(--light);
+    color: var(--primary);
+}
+
+
+/* DASHBOARD CARDS */
+
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(180px, 1fr)
+    );
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.card {
+    background: var(--light);
+    padding: 20px;
+    border-radius: 7px;
+}
+
+.card h3 {
+    margin-top: 0;
+    color: var(--primary);
+}
+
+
+/* PLACEHOLDERS */
+
+.placeholder {
+    background: #f7f7f7;
+    padding: 20px;
+    border: 1px dashed #bbb;
+    border-radius: 5px;
+    margin: 15px 0;
+}
+
+
+/* STATUS */
+
+.status {
+    color: var(--secondary);
+    font-weight: bold;
+}
+
+
+/* LOGIN PAGE */
+
+.login-container {
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px #00000015;
+}
+
+.login-container h2 {
+    color: var(--primary);
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.login-container button {
+    width: 100%;
+    margin: 5px 0;
+}
+
+
+/* CALENDAR */
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin: 15px 0;
+}
+
+.calendar div {
+    background: var(--light);
+    padding: 15px 5px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.calendar .day {
+    background: var(--primary);
+    color: white;
+}
+
+
+/* SIDEBAR LAYOUT */
+
+.sidebar-layout {
+    display: flex;
+    gap: 20px;
+}
+
+.sidebar {
+    width: 220px;
+    min-width: 180px;
+    background: var(--primary);
+    padding: 20px;
+    border-radius: 5px;
+    color: white;
+}
+
+.sidebar a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 12px 5px;
+    border-bottom: 1px solid #ffffff30;
+}
+
+.main-content {
+    flex: 1;
+    min-width: 0;
+}
+
+
+/* FOOTER */
+
+footer {
+    text-align: center;
+    padding: 25px;
+    color: #777;
+}
+
+
+/* RESPONSIVE DESIGN */
+
+@media (max-width: 700px) {
+
+    .sidebar-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+    }
+
+    .page {
+        margin: 15px;
+        padding: 18px;
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 550px;
+    }
+}
