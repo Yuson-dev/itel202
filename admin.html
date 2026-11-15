@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Management | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="admin">
+
+        <h2>Admin Management</h2>
+
+        <div class="sidebar-layout">
+
+            <aside class="sidebar">
+                <h3 style="color:white;">Admin Menu</h3>
+                <a href="admin.html">Dashboard</a>
+                <a href="admin.html#users">User Management</a>
+                <a href="admin.html#settings">System Settings</a>
+                <a href="reports.html">Reports and Records</a>
+                <a href="#" onclick="logoutAndRedirect(event)">Logout</a>
+            </aside>
+
+            <div class="main-content">
+
+                <h3>Administrator Dashboard</h3>
+
+                <div class="card-container">
+
+                    <div class="card">
+                        <h3>Registered Users</h3>
+                        <h2>250</h2>
+                    </div>
+
+                    <div class="card">
+                        <h3>Librarians</h3>
+                        <h2>10</h2>
+                    </div>
+
+                    <div class="card">
+                        <h3>Administrators</h3>
+                        <h2>2</h2>
+                    </div>
+
+                </div>
+
+                <h3 id="users">User Management</h3>
+
+                <table>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                    </tr>
+
+                    <tr>
+                        <td>R001</td>
+                        <td>Mark Yuson</td>
+                        <td>mark123</td>
+                        <td>Student</td>
+                        <td>Active</td>
+                    </tr>
+
+                    <tr>
+                        <td>R002</td>
+                        <td>Althea De Roma</td>
+                        <td>althea123</td>
+                        <td>Librarian</td>
+                        <td>Active</td>
+                    </tr>
+                </table>
+
+                <button>Add User</button>
+                <button class="secondary">Edit User</button>
+                <button class="secondary">Delete User</button>
+
+                <h3 id="settings">System Settings</h3>
+
+                <div class="placeholder">
+
+                    <label>Library Operating Hours</label>
+                    <input type="text" placeholder="8:00 AM - 5:00 PM">
+
+                    <label>Maximum Appointment Capacity</label>
+                    <input type="number" placeholder="Enter capacity">
+
+                    <label>System Name</label>
+                    <input type="text" placeholder="Library Management System">
+
+                    <button>Save Settings</button>
+
+                </div>
+
+                <h3>Reports and Records</h3>
+
+                <div class="placeholder">
+                    <p>System Activity and User Records Placeholder</p>
+                    <button onclick="location.href='reports.html'">View Reports</button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Books | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="books">
+
+        <h2>Book Search and Availability</h2>
+
+        <h3>Filter Options</h3>
+
+        <div class="card-container">
+
+            <div>
+                <label>Search by Title</label>
+                <input type="text" id="book-title" placeholder="Book title">
+            </div>
+
+            <div>
+                <label>Search by Author</label>
+                <input type="text" id="book-author" placeholder="Author name">
+            </div>
+
+            <div>
+                <label>Category</label>
+                <select id="book-category">
+                    <option>All Categories</option>
+                    <option>Science</option>
+                    <option>Mathematics</option>
+                    <option>History</option>
+                    <option>Technology</option>
+                    <option>Literature</option>
+                </select>
+            </div>
+
+        </div>
+
+        <button id="btn-search-books">Search Books</button>
+
+        <h3>Book List</h3>
+
+        <table>
+            <tr>
+                <th>Book ID</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Category</th>
+                <th>Availability</th>
+            </tr>
+            <tbody id="book-table-body"></tbody>
+        </table>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+/* ---------- Books page logic ---------- */
+const bookTableBody = document.getElementById("book-table-body");
+
+function renderBooks(list) {
+    bookTableBody.innerHTML = "";
+
+    if (list.length === 0) {
+        bookTableBody.innerHTML = '<tr><td colspan="5" class="muted">No books matched your search.</td></tr>';
+        return;
+    }
+
+    list.forEach(function (book) {
+        const row = document.createElement("tr");
+        row.innerHTML =
+            "<td>" + escapeHtml(book.id) + "</td>" +
+            "<td>" + escapeHtml(book.title) + "</td>" +
+            "<td>" + escapeHtml(book.author) + "</td>" +
+            "<td>" + escapeHtml(book.category) + "</td>" +
+            '<td><span class="status">' +
+                (book.available ? "Available" : "Borrowed") +
+            "</span></td>";
+        bookTableBody.appendChild(row);
+    });
+}
+
+function filterBooks() {
+    const title = document.getElementById("book-title").value.trim().toLowerCase();
+    const author = document.getElementById("book-author").value.trim().toLowerCase();
+    const category = document.getElementById("book-category").value;
+
+    const filtered = BOOKS.filter(function (book) {
+        const matchTitle = !title || book.title.toLowerCase().includes(title);
+        const matchAuthor = !author || book.author.toLowerCase().includes(author);
+        const matchCategory = category === "All Categories" || book.category === category;
+        return matchTitle && matchAuthor && matchCategory;
+    });
+
+    renderBooks(filtered);
+}
+
+document.getElementById("btn-search-books").addEventListener("click", filterBooks);
+
+document.addEventListener("DOMContentLoaded", function () {
+    renderBooks(BOOKS);
+});
+</script>
+</body>
+</html>

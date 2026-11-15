@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="reports">
+
+        <h2>Record Management and Reports</h2>
+
+        <h3>Report Filters</h3>
+
+        <div class="card-container">
+
+            <div>
+                <label>Report Type</label>
+                <select>
+                    <option>Select Report</option>
+                    <option>Borrowed Books</option>
+                    <option>Returned Books</option>
+                    <option>Appointments</option>
+                    <option>Registered Users</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Start Date</label>
+                <input type="date">
+            </div>
+
+            <div>
+                <label>End Date</label>
+                <input type="date">
+            </div>
+
+        </div>
+
+        <button>Generate Report</button>
+
+        <h3>Report Data</h3>
+
+        <table>
+            <tr>
+                <th>Record ID</th>
+                <th>Student Name</th>
+                <th>Book Title</th>
+                <th>Transaction Type</th>
+                <th>Date</th>
+            </tr>
+
+            <tr>
+                <td>B001</td>
+                <td>Mark Yuson</td>
+                <td>Introduction to Programming</td>
+                <td>Borrowed</td>
+                <td>11/05/2026</td>
+            </tr>
+
+            <tr>
+                <td>B002</td>
+                <td>Althea De Roma</td>
+                <td>Basic Mathematics</td>
+                <td>Borrowed</td>
+                <td>11/05/2026</td>
+            </tr>
+        </table>
+
+        <h3>Report Actions</h3>
+
+        <button>Download Report</button>
+        <button class="secondary">Print Report</button>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+</body>
+</html>

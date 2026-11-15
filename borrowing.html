@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Borrowing | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="borrowing">
+
+        <h2>Book Borrowing and Return</h2>
+
+        <h3>Borrowed Book Information</h3>
+
+        <table>
+            <tr>
+                <th>Book ID</th>
+                <th>Book Title</th>
+                <th>Student Name</th>
+                <th>Borrow Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+            </tr>
+            <tbody id="borrow-table-body"></tbody>
+        </table>
+
+        <div id="borrow-form" style="display:none;">
+
+            <h3>Book Details</h3>
+
+            <p id="borrow-message" class="hidden"></p>
+
+            <label>Book ID</label>
+            <input type="text" id="borrow-bookid" placeholder="Enter book ID (e.g. B001)">
+
+            <label>Book Title</label>
+            <input type="text" id="borrow-title" placeholder="Filled in automatically" readonly>
+
+            <label>Student ID</label>
+            <input type="text" id="borrow-studentid" placeholder="Enter student ID (needed to borrow)">
+
+            <label>Transaction Date</label>
+            <input type="date" id="borrow-date">
+
+            <button id="btn-borrow">Borrow Book</button>
+            <button class="secondary" id="btn-return">Return Book</button>
+
+        </div>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script src="borrowing.js"></script>
+</body>
+</html>

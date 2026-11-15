@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="history">
+
+        <h2>Borrowing History</h2>
+
+        <h3>Student Information</h3>
+
+        <div class="card-container">
+
+            <div class="card">
+                <h3>Student Name</h3>
+                <p data-user-name>--</p>
+            </div>
+
+            <div class="card">
+                <h3>Student ID</h3>
+                <p data-user-id>--</p>
+            </div>
+
+            <div class="card">
+                <h3>Total Borrowed Books</h3>
+                <p id="hist-total">0 Books</p>
+            </div>
+
+        </div>
+
+        <h3>Previous Borrowing Records</h3>
+
+        <table>
+            <tr>
+                <th>Book ID</th>
+                <th>Book Title</th>
+                <th>Borrowing Date</th>
+                <th>Return Date</th>
+                <th>Status</th>
+            </tr>
+            <tbody id="hist-table-body"></tbody>
+        </table>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+/* ---------- History page logic ---------- */
+const HIST_KEY = "libraryBorrowedBooks";
+const histTableBody = document.getElementById("hist-table-body");
+
+function renderHistory() {
+    const user = getCurrentUser();
+    let records = [];
+
+    try {
+        records = JSON.parse(localStorage.getItem(HIST_KEY)) || [];
+    } catch (err) {
+        records = [];
+    }
+
+    const mine = user ? records.filter(function (r) { return r.studentId === user.student_id; }) : [];
+
+    document.getElementById("hist-total").textContent = mine.length + " Books";
+    histTableBody.innerHTML = "";
+
+    if (mine.length === 0) {
+        histTableBody.innerHTML = '<tr><td colspan="5" class="muted">No borrowing records found for your account.</td></tr>';
+        return;
+    }
+
+    mine.forEach(function (rec) {
+        const row = document.createElement("tr");
+        row.innerHTML =
+            "<td>" + escapeHtml(rec.bookId) + "</td>" +
+            "<td>" + escapeHtml(rec.title) + "</td>" +
+            "<td>" + formatDate(rec.borrowDate) + "</td>" +
+            "<td>" + (rec.returnDate ? formatDate(rec.returnDate) : "--") + "</td>" +
+            '<td><span class="status">' + escapeHtml(rec.status) + "</span></td>";
+        histTableBody.appendChild(row);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", renderHistory);
+</script>
+</body>
+</html>

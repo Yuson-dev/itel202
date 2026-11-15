@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Librarian Dashboard | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="librarian">
+
+        <h2>Librarian Dashboard</h2>
+
+        <div class="sidebar-layout">
+
+            <aside class="sidebar">
+                <h3 style="color:white;">Librarian Menu</h3>
+                <a href="librarian.html">Dashboard</a>
+                <a href="appointments.html">Appointments</a>
+                <a href="queue.html">Queue Monitoring</a>
+                <a href="books.html">Book Inventory</a>
+                <a href="borrowing.html">Borrowing Records</a>
+                <a href="reports.html">Reports</a>
+                <a href="#" onclick="logoutAndRedirect(event)">Logout</a>
+            </aside>
+
+            <div class="main-content">
+
+                <h3>Welcome, Librarian!</h3>
+
+                <div class="card-container">
+
+                    <div class="card">
+                        <h3>Appointments</h3>
+                        <h2>12</h2>
+                        <p>Scheduled today</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>Queue</h3>
+                        <h2>8</h2>
+                        <p>Students waiting</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>Total Books</h3>
+                        <h2>500</h2>
+                        <p>Registered books</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>Borrowed Books</h3>
+                        <h2>45</h2>
+                        <p>Currently borrowed</p>
+                    </div>
+
+                </div>
+
+                <h3>Appointment Management</h3>
+
+                <table>
+                    <tr>
+                        <th>Student</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>Mark Yuson</td>
+                        <td>11/10/2026</td>
+                        <td>9:00 AM</td>
+                        <td>Pending</td>
+                    </tr>
+                </table>
+
+                <h3>Queue Monitoring</h3>
+
+                <div class="placeholder">
+                    <p>Current Queue: Q-020</p>
+                    <p>Next Queue: Q-021</p>
+                </div>
+
+                <h3>Book Inventory</h3>
+
+                <div class="placeholder">
+                    <p>Total Books: 500</p>
+                    <p>Available Books: 455</p>
+                    <p>Borrowed Books: 45</p>
+                </div>
+
+                <h3>Statistics and Reports</h3>
+
+                <div class="placeholder">
+                    <p>Library Activity Statistics and Reports Placeholder</p>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+</body>
+</html>
