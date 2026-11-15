@@ -1,10 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Management | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2 id="header-system-name">Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="admin">
+
+        <h2>Admin Management</h2>
+
+        <div class="sidebar-layout">
+
+            <aside class="sidebar">
+                <h3>Admin Menu</h3>
+                <a href="admin.html">Dashboard</a>
+                <a href="admin.html#users">User Management</a>
+                <a href="admin.html#settings">System Settings</a>
+                <a href="reports.html">Reports and Records</a>
+                <a href="#" onclick="logoutAndRedirect(event)">Logout</a>
+            </aside>
+
+            <div class="main-content">
+
+                <h3>Administrator Dashboard</h3>
+
+                <div class="card-container">
+                    <div class="card">
+                        <h3>Registered Users</h3>
+                        <h2 id="stat-total-users">--</h2>
+                    </div>
+                    <div class="card">
+                        <h3>Librarians</h3>
+                        <h2 id="stat-librarians">--</h2>
+                    </div>
+                    <div class="card">
+                        <h3>Administrators</h3>
+                        <h2 id="stat-admins">--</h2>
+                    </div>
+                </div>
+
+                <h3 id="users">User Management</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-user-table-body">
+                        <tr><td colspan="5" class="muted">Loading users...</td></tr>
+                    </tbody>
+                </table>
+
+                <h3 id="settings">System Settings</h3>
+
+                <div class="placeholder">
+                    <p id="settings-message" class="hidden"></p>
+
+                    <label>Library Operating Hours</label>
+                    <input type="text" id="setting-hours" placeholder="8:00 AM - 5:00 PM">
+
+                    <label>Maximum Appointment Capacity</label>
+                    <input type="number" id="setting-capacity" placeholder="Enter capacity">
+
+                    <label>System Name</label>
+                    <input type="text" id="setting-name" placeholder="Library Management System">
+
+                    <button id="btn-save-settings">Save Settings</button>
+                </div>
+
+                <h3>Reports and Records</h3>
+
+                <div class="placeholder">
+                    <p>System Activity and User Records Placeholder</p>
+                    <button onclick="location.href='reports.html'">View Reports</button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", async function () {
+    // 1. Safety Check: Don't run if Supabase isn't ready
     if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) return;
+
+    // 2. Safety Check: Don't run if the user isn't an admin
+    // (This prevents the script from running while app.js is redirecting them)
+    const user = getCurrentUser();
+    if (!user || user.role !== 'admin') return;
+
+    // 3. Safety Check: Make sure the elements exist on the page
+    const tbody = document.getElementById("admin-user-table-body");
+    if (!tbody) return;
 
     const settingsMessage = document.getElementById("settings-message");
 
-    // --- 1. LOAD USERS ---
+    // --- LOAD USERS ---
     const { data: users, error } = await supabaseClient.from('users').select('*').order('role', { ascending: true });
 
     if (!error && users) {
@@ -12,28 +129,26 @@ document.addEventListener("DOMContentLoaded", async function () {
         document.getElementById("stat-librarians").textContent = users.filter(u => u.role === "librarian").length;
         document.getElementById("stat-admins").textContent = users.filter(u => u.role === "admin").length;
 
-        const tbody = document.getElementById("admin-user-table-body");
         tbody.innerHTML = "";
 
-        users.forEach(user => {
+        users.forEach(userRow => {
             let roleColor = "black";
-            if (user.role === "admin") roleColor = "#d9534f";
-            if (user.role === "librarian") roleColor = "#f0ad4e";
+            if (userRow.role === "admin") roleColor = "#d9534f";
+            if (userRow.role === "librarian") roleColor = "#f0ad4e";
 
             tbody.innerHTML += `<tr>
-                <td>${user.student_id || 'N/A'}</td>
-                <td>${escapeHtml(user.full_name || 'N/A')}</td>
-                <td>${escapeHtml(user.username)}</td>
-                <td style="text-transform: capitalize; color: ${roleColor}; font-weight: bold;">${user.role || 'student'}</td>
+                <td>${userRow.student_id || 'N/A'}</td>
+                <td>${escapeHtml(userRow.full_name || 'N/A')}</td>
+                <td>${escapeHtml(userRow.username)}</td>
+                <td style="text-transform: capitalize; color: ${roleColor}; font-weight: bold;">${userRow.role || 'student'}</td>
                 <td><span style="color: green; font-weight: bold;">Active</span></td>
             </tr>`;
         });
     }
 
-    // --- 2. LOAD SETTINGS (Key-Value style) ---
+    // --- LOAD SETTINGS ---
     const { data: settingsData } = await supabaseClient.from('settings').select('*');
     
-    // Convert the array of rows into a single object for easy access
     const settings = {};
     if (settingsData) {
         settingsData.forEach(row => {
@@ -41,46 +156,48 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     }
 
-    // Populate the inputs
-    document.getElementById("setting-hours").value = settings.operating_hours || "";
-    document.getElementById("setting-capacity").value = settings.max_capacity || "";
-    document.getElementById("setting-name").value = settings.system_name || "";
-    
-    // Update the header dynamically
-    document.getElementById("header-system-name").textContent = settings.system_name || "Library Management System";
+    if (document.getElementById("setting-hours")) {
+        document.getElementById("setting-hours").value = settings.operating_hours || "";
+        document.getElementById("setting-capacity").value = settings.max_capacity || "";
+        document.getElementById("setting-name").value = settings.system_name || "";
+        document.getElementById("header-system-name").textContent = settings.system_name || "Library Management System";
+    }
 
-    // --- 3. SAVE SETTINGS ---
-    document.getElementById("btn-save-settings").addEventListener("click", async function() {
-        const hours = document.getElementById("setting-hours").value.trim();
-        const capacity = document.getElementById("setting-capacity").value;
-        const name = document.getElementById("setting-name").value.trim();
+    // --- SAVE SETTINGS ---
+    const btnSave = document.getElementById("btn-save-settings");
+    if (btnSave) {
+        btnSave.addEventListener("click", async function() {
+            const hours = document.getElementById("setting-hours").value.trim();
+            const capacity = document.getElementById("setting-capacity").value;
+            const name = document.getElementById("setting-name").value.trim();
 
-        if (!hours || !capacity || !name) {
-            settingsMessage.textContent = "Please fill out all fields.";
-            settingsMessage.className = "message error";
-            return;
-        }
+            if (!hours || !capacity || !name) {
+                settingsMessage.textContent = "Please fill out all fields.";
+                settingsMessage.className = "message error";
+                return;
+            }
 
-        // We update each row individually based on the 'key'
-        const updates = [
-            supabaseClient.from('settings').update({ value: hours }).eq('key', 'operating_hours'),
-            supabaseClient.from('settings').update({ value: capacity }).eq('key', 'max_capacity'),
-            supabaseClient.from('settings').update({ value: name }).eq('key', 'system_name')
-        ];
+            const updates = [
+                supabaseClient.from('settings').update({ value: hours }).eq('key', 'operating_hours'),
+                supabaseClient.from('settings').update({ value: capacity }).eq('key', 'max_capacity'),
+                supabaseClient.from('settings').update({ value: name }).eq('key', 'system_name')
+            ];
 
-        const results = await Promise.all(updates);
-        const error = results.find(r => r.error)?.error;
+            const results = await Promise.all(updates);
+            const error = results.find(r => r.error)?.error;
 
-        if (error) {
-            settingsMessage.textContent = "Error saving: " + error.message;
-            settingsMessage.className = "message error";
-        } else {
-            settingsMessage.textContent = "Settings saved successfully!";
-            settingsMessage.className = "message success";
-            
-            document.getElementById("header-system-name").textContent = name;
-            setTimeout(() => { settingsMessage.classList.add("hidden"); }, 3000);
-        }
-    });
+            if (error) {
+                settingsMessage.textContent = "Error saving: " + error.message;
+                settingsMessage.className = "message error";
+            } else {
+                settingsMessage.textContent = "Settings saved successfully!";
+                settingsMessage.className = "message success";
+                document.getElementById("header-system-name").textContent = name;
+                setTimeout(() => { settingsMessage.classList.add("hidden"); }, 3000);
+            }
+        });
+    }
 });
 </script>
+</body>
+</html>
