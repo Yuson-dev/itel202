@@ -3,9 +3,8 @@
    ========================================================= */
 
 /* ---------- 1. SUPABASE CONFIG ---------- */
-// REPLACE THESE WITH YOUR ACTUAL SUPABASE URL AND ANON KEY
 const SUPABASE_URL = "https://qkdlgxeapgnbqjtmrypw.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_MlmH0bwg65-StlMCE37Eow_1TZswdr_";
+const SUPABASE_ANON_KEY = "sb_publishable_MlmH0bwg65-St1MCE37Eow_1TZswdr_";
 
 const SUPABASE_READY = !SUPABASE_URL.includes("YOUR-PROJECT") && !SUPABASE_ANON_KEY.includes("YOUR-ANON-KEY");
 
@@ -20,12 +19,12 @@ const NAV_ITEMS = [
     { href: "appointments.html",  label: "Appointments" },
     { href: "queue.html",         label: "Queue Status" },
     { href: "books.html",         label: "Books" },
-    { href: "borrowing.html",     label: "Borrowing" },
     { href: "history.html",       label: "History" },
     { href: "notifications.html", label: "Notifications" },
-    { href: "librarian.html",     label: "Librarian", roles: ["librarian", "admin"] }, // Restricted
-    { href: "admin.html",         label: "Admin", roles: ["admin"] }, // Restricted
-    { href: "reports.html",       label: "Reports" }
+    { href: "borrowing.html",     label: "Borrowing", roles: ["librarian", "admin"] },
+    { href: "reports.html",       label: "Reports", roles: ["librarian", "admin"] },
+    { href: "librarian.html",     label: "Librarian", roles: ["librarian", "admin"] },
+    { href: "admin.html",         label: "Admin", roles: ["admin"] }
 ];
 
 /* ---------- 3. SESSION HELPERS ---------- */
@@ -48,7 +47,7 @@ function clearCurrentUser() {
 function requireAuth() {
     const user = getCurrentUser();
     if (!user) {
-        window.location.replace("index.html"); // Redirect to login page
+        window.location.replace("index.html"); 
         return null;
     }
     return user;
@@ -57,24 +56,10 @@ function requireAuth() {
 function logoutAndRedirect(event) {
     if (event) event.preventDefault();
     clearCurrentUser();
-    window.location.href = "index.html"; // Redirect to login page
+    window.location.href = "index.html"; 
 }
 
-/* ---------- 4. BOOK CATALOG (demo data) ---------- */
-const BOOKS = [
-    { id: "B001", title: "Introduction to Programming", author: "J. Smith",       category: "Technology", available: true  },
-    { id: "B002", title: "Basic Mathematics",           author: "R. Cruz",        category: "Mathematics", available: true  },
-    { id: "B003", title: "World History",               author: "A. Reyes",       category: "History",     available: false },
-    { id: "B004", title: "Data Structures",             author: "M. Santos",      category: "Technology",  available: true  },
-    { id: "B005", title: "Physics Fundamentals",        author: "L. Garcia",      category: "Science",     available: true  },
-    { id: "B006", title: "Chemistry Basics",            author: "P. Mendoza",     category: "Science",     available: false },
-    { id: "B007", title: "Algebra Made Easy",           author: "R. Cruz",        category: "Mathematics", available: true  },
-    { id: "B008", title: "Philippine Literature",       author: "N. Bautista",    category: "Literature",  available: true  },
-    { id: "B009", title: "Web Development Essentials",  author: "K. Lim",         category: "Technology",  available: true  },
-    { id: "B010", title: "Modern Short Stories",        author: "E. Villanueva",  category: "Literature",  available: false }
-];
-
-/* ---------- 5. SHARED HELPERS ---------- */
+/* ---------- 4. SHARED HELPERS ---------- */
 function escapeHtml(value) {
     return String(value == null ? "" : value)
         .replace(/&/g, "&amp;")
@@ -108,7 +93,7 @@ function showMessage(element, text, type) {
     element.classList.remove("hidden");
 }
 
-/* ---------- 6. NAV RENDERING ---------- */
+/* ---------- 5. NAV RENDERING ---------- */
 function renderNav() {
     const nav = document.getElementById("main-nav");
     if (!nav) return;
@@ -120,9 +105,8 @@ function renderNav() {
     nav.innerHTML = "";
 
     NAV_ITEMS.forEach(function (item) {
-        // If the menu item has role restrictions, check if the user has permission
         if (item.roles && !item.roles.includes(userRole)) {
-            return; // Skip rendering this link
+            return; 
         }
 
         const link = document.createElement("a");
@@ -140,7 +124,7 @@ function renderNav() {
     nav.appendChild(logout);
 }
 
-/* ---------- 7. PAGE BOOT ---------- */
+/* ---------- 6. PAGE BOOT & SECURITY GUARDS ---------- */
 document.addEventListener("DOMContentLoaded", function () {
     const isProtected = document.body.hasAttribute("data-protected");
 
@@ -151,16 +135,26 @@ document.addEventListener("DOMContentLoaded", function () {
         const role = user.role || "student";
         const path = window.location.pathname;
 
-        // --- ADMIN GUARD ---
         if (path.includes("admin.html") && role !== "admin") {
             alert("Access Denied. You do not have administrator privileges.");
             window.location.replace("dashboard.html");
             return;
         }
 
-        // --- LIBRARIAN GUARD ---
         if (path.includes("librarian.html") && role !== "librarian" && role !== "admin") {
             alert("Access Denied. You do not have librarian privileges.");
+            window.location.replace("dashboard.html");
+            return;
+        }
+
+        if (path.includes("borrowing.html") && role !== "librarian" && role !== "admin") {
+            alert("Access Denied. Only librarians and admins can manage borrowings.");
+            window.location.replace("dashboard.html");
+            return;
+        }
+
+        if (path.includes("reports.html") && role !== "librarian" && role !== "admin") {
+            alert("Access Denied. Only librarians and admins can view reports.");
             window.location.replace("dashboard.html");
             return;
         }
@@ -182,13 +176,12 @@ document.addEventListener("DOMContentLoaded", function () {
         el.textContent = user ? (user.role || "student") : "--";
     });
 
-    // --- LOAD ADMIN DATA ---
     if (window.location.pathname.includes("admin.html") && SUPABASE_READY && supabaseClient) {
         loadAdminUsers();
     }
 });
 
-/* ---------- 8. ADMIN SPECIFIC FUNCTIONS ---------- */
+/* ---------- 7. ADMIN SPECIFIC FUNCTIONS ---------- */
 async function loadAdminUsers() {
     const tbody = document.getElementById("admin-user-table-body");
     if (!tbody) return; 
@@ -196,7 +189,7 @@ async function loadAdminUsers() {
     const { data: users, error } = await supabaseClient
         .from('users')
         .select('*')
-        .order('role', { ascending: true }); // Show admins first
+        .order('role', { ascending: true });
 
     if (error) {
         console.error("Error loading users:", error);
@@ -209,10 +202,9 @@ async function loadAdminUsers() {
     users.forEach(user => {
         const tr = document.createElement("tr");
         
-        // Color code the roles
         let roleColor = "black";
-        if (user.role === "admin") roleColor = "#d9534f"; // Red
-        if (user.role === "librarian") roleColor = "#f0ad4e"; // Orange
+        if (user.role === "admin") roleColor = "#d9534f";
+        if (user.role === "librarian") roleColor = "#f0ad4e";
 
         tr.innerHTML = `
             <td>${user.student_id || 'N/A'}</td>

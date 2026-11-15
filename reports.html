@@ -23,64 +23,38 @@
         <h3>Report Filters</h3>
 
         <div class="card-container">
-
             <div>
                 <label>Report Type</label>
-                <select>
-                    <option>Select Report</option>
-                    <option>Borrowed Books</option>
-                    <option>Returned Books</option>
-                    <option>Appointments</option>
-                    <option>Registered Users</option>
+                <select id="report-type">
+                    <option value="borrowings">Borrowed Books</option>
+                    <option value="appointments">Appointments</option>
+                    <option value="users">Registered Users</option>
                 </select>
             </div>
 
             <div>
                 <label>Start Date</label>
-                <input type="date">
+                <input type="date" id="report-start">
             </div>
 
             <div>
                 <label>End Date</label>
-                <input type="date">
+                <input type="date" id="report-end">
             </div>
-
         </div>
 
-        <button>Generate Report</button>
+        <button id="btn-generate">Generate Report</button>
 
         <h3>Report Data</h3>
 
         <table>
-            <tr>
-                <th>Record ID</th>
-                <th>Student Name</th>
-                <th>Book Title</th>
-                <th>Transaction Type</th>
-                <th>Date</th>
-            </tr>
-
-            <tr>
-                <td>B001</td>
-                <td>Mark Yuson</td>
-                <td>Introduction to Programming</td>
-                <td>Borrowed</td>
-                <td>11/05/2026</td>
-            </tr>
-
-            <tr>
-                <td>B002</td>
-                <td>Althea De Roma</td>
-                <td>Basic Mathematics</td>
-                <td>Borrowed</td>
-                <td>11/05/2026</td>
-            </tr>
+            <thead id="report-thead">
+                <!-- Headers will be injected by JS -->
+            </thead>
+            <tbody id="report-table-body">
+                <tr><td colspan="5" class="muted">Select a report type and click Generate.</td></tr>
+            </tbody>
         </table>
-
-        <h3>Report Actions</h3>
-
-        <button>Download Report</button>
-        <button class="secondary">Print Report</button>
 
     </section>
 </main>
@@ -92,5 +66,78 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
+<script>
+document.getElementById("btn-generate").addEventListener("click", async function() {
+    const type = document.getElementById("report-type").value;
+    const start = document.getElementById("report-start").value;
+    const end = document.getElementById("report-end").value;
+    
+    const thead = document.getElementById("report-thead");
+    const tbody = document.getElementById("report-table-body");
+    
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading data...</td></tr>';
+    thead.innerHTML = "";
+
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) {
+        tbody.innerHTML = '<tr><td colspan="5" style="color:red;">Database not connected.</td></tr>';
+        return;
+    }
+
+    let query = supabaseClient.from(type).select('*');
+
+    if (type === 'borrowings' && start && end) {
+        query = query.gte('borrow_date', start).lte('borrow_date', end);
+    } else if (type === 'appointments' && start && end) {
+        query = query.gte('date', start).lte('date', end);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
+        return;
+    }
+
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="muted">No records found for this timeframe.</td></tr>';
+        return;
+    }
+
+    if (type === 'borrowings') {
+        thead.innerHTML = '<tr><th>Book ID</th><th>Book Title</th><th>Student</th><th>Borrow Date</th><th>Status</th></tr>';
+        data.forEach(r => {
+            tbody.innerHTML += `<tr>
+                <td>${escapeHtml(r.book_id)}</td>
+                <td>${escapeHtml(r.book_title)}</td>
+                <td>${escapeHtml(r.student_name)}</td>
+                <td>${formatDate(r.borrow_date)}</td>
+                <td>${escapeHtml(r.status)}</td>
+            </tr>`;
+        });
+    } else if (type === 'appointments') {
+        thead.innerHTML = '<tr><th>Student</th><th>Date</th><th>Time</th><th>Purpose</th><th>Status</th></tr>';
+        data.forEach(r => {
+            tbody.innerHTML += `<tr>
+                <td>${escapeHtml(r.student_name || r.studentId || 'N/A')}</td>
+                <td>${formatDate(r.date)}</td>
+                <td>${escapeHtml(r.time)}</td>
+                <td>${escapeHtml(r.purpose)}</td>
+                <td>${escapeHtml(r.status)}</td>
+            </tr>`;
+        });
+    } else if (type === 'users') {
+        thead.innerHTML = '<tr><th>Student ID</th><th>Full Name</th><th>Username</th><th>Role</th><th>Status</th></tr>';
+        data.forEach(r => {
+            tbody.innerHTML += `<tr>
+                <td>${escapeHtml(r.student_id)}</td>
+                <td>${escapeHtml(r.full_name)}</td>
+                <td>${escapeHtml(r.username)}</td>
+                <td style="text-transform: capitalize;">${escapeHtml(r.role)}</td>
+                <td>Active</td>
+            </tr>`;
+        });
+    }
+});
+</script>
 </body>
 </html>

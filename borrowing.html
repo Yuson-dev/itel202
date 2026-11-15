@@ -155,7 +155,6 @@ function renderBorrowTable(records) {
     });
 }
 
-// LOOKUP BOOK (Fetches from the real Supabase books table now)
 async function lookupBook() {
     const id = bookIdInput.value.trim().toUpperCase();
     if (!id) {
@@ -188,7 +187,6 @@ async function borrowBook() {
         return;
     }
 
-    // Check if we found a valid title
     if (!titleInput.value) {
         showMessage(borrowMessage, "Please enter a valid Book ID.", "error");
         return;
@@ -218,7 +216,6 @@ async function borrowBook() {
     if (error) {
         showMessage(borrowMessage, "Error borrowing book: " + error.message, "error");
     } else {
-        // THIS IS THE NEW LINE: Mark the book as unavailable in the books table
         await supabaseClient.from('books').update({ available: false }).eq('id', bookId);
         
         showMessage(borrowMessage, "Book borrowed successfully. Due on " + formatDate(addDays(date, 7)) + ".", "success");
@@ -252,7 +249,6 @@ async function returnBook() {
     if (error) {
         showMessage(borrowMessage, "Error returning book: " + error.message, "error");
     } else {
-        // THIS IS THE NEW LINE: Mark the book as available again
         await supabaseClient.from('books').update({ available: true }).eq('id', bookId);
 
         showMessage(borrowMessage, "Book returned successfully.", "success");
@@ -290,7 +286,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelector('.filter-btn[data-filter="all"]').style.background = "var(--primary)";
     document.querySelector('.filter-btn[data-filter="all"]').style.color = "white";
 
-    // Add debounce to lookup so it doesn't spam the DB on every keystroke
     let typingTimer;
     bookIdInput.addEventListener("input", function() {
         clearTimeout(typingTimer);
