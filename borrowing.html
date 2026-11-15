@@ -20,24 +20,8 @@
 
         <h2>Book Borrowing and Return</h2>
 
-        <h3>Borrowed Book Information</h3>
-
-        <table>
-            <tr>
-                <th>Book ID</th>
-                <th>Book Title</th>
-                <th>Student Name</th>
-                <th>Borrow Date</th>
-                <th>Due Date</th>
-                <th>Status</th>
-            </tr>
-            <tbody id="borrow-table-body"></tbody>
-        </table>
-
-        <div id="borrow-form" style="display:none;">
-
+        <div id="borrow-form" style="display:none; margin-bottom: 30px;">
             <h3>Book Details</h3>
-
             <p id="borrow-message" class="hidden"></p>
 
             <label>Book ID</label>
@@ -54,8 +38,29 @@
 
             <button id="btn-borrow">Borrow Book</button>
             <button class="secondary" id="btn-return">Return Book</button>
-
         </div>
+
+        <h3>Borrowed Book Information</h3>
+        
+        <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="secondary filter-btn active" data-filter="all">All Time</button>
+            <button class="secondary filter-btn" data-filter="today">Today</button>
+            <button class="secondary filter-btn" data-filter="week">This Week</button>
+            <button class="secondary filter-btn" data-filter="month">This Month</button>
+            <button class="secondary filter-btn" data-filter="year">This Year</button>
+        </div>
+
+        <table>
+            <tr>
+                <th>Book ID</th>
+                <th>Book Title</th>
+                <th>Student Name</th>
+                <th>Borrow Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+            </tr>
+            <tbody id="borrow-table-body"></tbody>
+        </table>
 
     </section>
 </main>
@@ -67,6 +72,236 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
-<script src="borrowing.js"></script>
+<script>
+const borrowTableBody = document.getElementById("borrow-table-body");
+const borrowForm      = document.getElementById("borrow-form");
+const borrowMessage   = document.getElementById("borrow-message");
+const bookIdInput     = document.getElementById("borrow-bookid");
+const titleInput      = document.getElementById("borrow-title");
+const studentIdInput  = document.getElementById("borrow-studentid");
+const dateInput       = document.getElementById("borrow-date");
+const btnBorrow       = document.getElementById("btn-borrow");
+const btnReturn       = document.getElementById("btn-return");
+
+let allBorrowings = []; 
+let currentFilter = "all"; 
+
+async function fetchBorrowings() {
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY) return;
+
+    const { data, error } = await supabaseClient
+        .from('borrowings')
+        .select('*')
+        .order('borrow_date', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching borrowings:", error);
+        borrowTableBody.innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${error.message}</td></tr>`;
+        return;
+    }
+
+    allBorrowings = data;
+    applyFilter();
+}
+
+function applyFilter() {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const filtered = allBorrowings.filter(rec => {
+        if (currentFilter === "all") return true;
+        
+        const bDate = new Date(rec.borrow_date);
+        bDate.setHours(0,0,0,0);
+
+        if (currentFilter === "today") {
+            return bDate.getTime() === today.getTime();
+        }
+        if (currentFilter === "week") {
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            return bDate >= startOfWeek && bDate <= today;
+        }
+        if (currentFilter === "month") {
+            return bDate.getMonth() === today.getMonth() && bDate.getFullYear() === today.getFullYear();
+        }
+        if (currentFilter === "year") {
+            return bDate.getFullYear() === today.getFullYear();
+        }
+        return true;
+    });
+
+    renderBorrowTable(filtered);
+}
+
+function renderBorrowTable(records) {
+    borrowTableBody.innerHTML = "";
+
+    if (records.length === 0) {
+        borrowTableBody.innerHTML = '<tr><td colspan="6" class="muted">No borrowing records found for this timeframe.</td></tr>';
+        return;
+    }
+
+    records.forEach(function (rec) {
+        const row = document.createElement("tr");
+        row.innerHTML =
+            "<td>" + escapeHtml(rec.book_id) + "</td>" +
+            "<td>" + escapeHtml(rec.book_title) + "</td>" +
+            "<td>" + escapeHtml(rec.student_name || rec.student_id) + "</td>" +
+            "<td>" + formatDate(rec.borrow_date) + "</td>" +
+            "<td>" + formatDate(rec.due_date) + "</td>" +
+            '<td><span class="status" style="' + (rec.status === 'Borrowed' ? 'background:#f8d7da; color:#721c24;' : '') + '">' + escapeHtml(rec.status) + "</span></td>";
+        borrowTableBody.appendChild(row);
+    });
+}
+
+// LOOKUP BOOK (Fetches from the real Supabase books table now)
+async function lookupBook() {
+    const id = bookIdInput.value.trim().toUpperCase();
+    if (!id) {
+        titleInput.value = "";
+        return;
+    }
+
+    const { data: book, error } = await supabaseClient
+        .from('books')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (book) {
+        titleInput.value = book.title;
+        showMessage(borrowMessage, "Book found: " + book.title, "success");
+    } else {
+        titleInput.value = "";
+        showMessage(borrowMessage, "No book found with ID " + id + ".", "error");
+    }
+}
+
+async function borrowBook() {
+    const bookId    = bookIdInput.value.trim().toUpperCase();
+    const studentId = studentIdInput.value.trim();
+    const date      = dateInput.value || todayISO();
+
+    if (!bookId || !studentId) {
+        showMessage(borrowMessage, "Book ID and Student ID are required.", "error");
+        return;
+    }
+
+    // Check if we found a valid title
+    if (!titleInput.value) {
+        showMessage(borrowMessage, "Please enter a valid Book ID.", "error");
+        return;
+    }
+
+    const alreadyOut = allBorrowings.some(r => r.book_id === bookId && r.status === "Borrowed");
+    if (alreadyOut) {
+        showMessage(borrowMessage, "That book is already borrowed.", "error");
+        return;
+    }
+
+    const user = getCurrentUser();
+    const studentName = user && user.student_id === studentId ? user.full_name : studentId;
+
+    const newRecord = {
+        book_id: bookId,
+        book_title: titleInput.value,
+        student_id: studentId,
+        student_name: studentName,
+        borrow_date: date,
+        due_date: addDays(date, 7),
+        status: "Borrowed"
+    };
+
+    const { error } = await supabaseClient.from('borrowings').insert([newRecord]);
+
+    if (error) {
+        showMessage(borrowMessage, "Error borrowing book: " + error.message, "error");
+    } else {
+        // THIS IS THE NEW LINE: Mark the book as unavailable in the books table
+        await supabaseClient.from('books').update({ available: false }).eq('id', bookId);
+        
+        showMessage(borrowMessage, "Book borrowed successfully. Due on " + formatDate(addDays(date, 7)) + ".", "success");
+        bookIdInput.value = "";
+        titleInput.value = "";
+        fetchBorrowings();
+    }
+}
+
+async function returnBook() {
+    const bookId    = bookIdInput.value.trim().toUpperCase();
+    const studentId = studentIdInput.value.trim();
+
+    if (!bookId || !studentId) {
+        showMessage(borrowMessage, "Book ID and Student ID are required to return.", "error");
+        return;
+    }
+
+    const record = allBorrowings.find(r => r.book_id === bookId && r.student_id === studentId && r.status === "Borrowed");
+
+    if (!record) {
+        showMessage(borrowMessage, "No active borrowing record found for that book and student.", "error");
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from('borrowings')
+        .update({ return_date: todayISO(), status: "Returned" })
+        .eq('id', record.id);
+
+    if (error) {
+        showMessage(borrowMessage, "Error returning book: " + error.message, "error");
+    } else {
+        // THIS IS THE NEW LINE: Mark the book as available again
+        await supabaseClient.from('books').update({ available: true }).eq('id', bookId);
+
+        showMessage(borrowMessage, "Book returned successfully.", "success");
+        bookIdInput.value = "";
+        titleInput.value = "";
+        fetchBorrowings();
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    if (!borrowTableBody) return;
+
+    borrowForm.style.display = "block";
+    dateInput.value = todayISO();
+
+    const user = getCurrentUser();
+    if (user && user.student_id) studentIdInput.value = user.student_id;
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.background = "";
+                b.style.color = "";
+            });
+            this.classList.add('active');
+            this.style.background = "var(--primary)";
+            this.style.color = "white";
+
+            currentFilter = this.dataset.filter;
+            applyFilter();
+        });
+    });
+
+    document.querySelector('.filter-btn[data-filter="all"]').style.background = "var(--primary)";
+    document.querySelector('.filter-btn[data-filter="all"]').style.color = "white";
+
+    // Add debounce to lookup so it doesn't spam the DB on every keystroke
+    let typingTimer;
+    bookIdInput.addEventListener("input", function() {
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(lookupBook, 500);
+    });
+
+    btnBorrow.addEventListener("click", borrowBook);
+    btnReturn.addEventListener("click", returnBook);
+
+    fetchBorrowings();
+});
+</script>
 </body>
 </html>

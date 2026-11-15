@@ -40,47 +40,24 @@
                 <div class="card-container">
 
                     <div class="card">
-                        <h3>Appointments</h3>
-                        <h2>12</h2>
-                        <p>Scheduled today</p>
-                    </div>
-
-                    <div class="card">
                         <h3>Queue</h3>
-                        <h2>8</h2>
+                        <h2 id="librarian-queue-count">--</h2>
                         <p>Students waiting</p>
                     </div>
 
                     <div class="card">
                         <h3>Total Books</h3>
-                        <h2>500</h2>
+                        <h2 id="librarian-total-books">--</h2>
                         <p>Registered books</p>
                     </div>
 
                     <div class="card">
                         <h3>Borrowed Books</h3>
-                        <h2>45</h2>
+                        <h2 id="librarian-borrowed-count">--</h2>
                         <p>Currently borrowed</p>
                     </div>
 
                 </div>
-
-                <h3>Appointment Management</h3>
-
-                <table>
-                    <tr>
-                        <th>Student</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                    </tr>
-                    <tr>
-                        <td>Mark Yuson</td>
-                        <td>11/10/2026</td>
-                        <td>9:00 AM</td>
-                        <td>Pending</td>
-                    </tr>
-                </table>
 
                 <h3>Queue Monitoring</h3>
 
@@ -97,15 +74,9 @@
                 <h3>Book Inventory</h3>
 
                 <div class="placeholder">
-                    <p>Total Books: 500</p>
-                    <p>Available Books: 455</p>
-                    <p>Borrowed Books: 45</p>
-                </div>
-
-                <h3>Statistics and Reports</h3>
-
-                <div class="placeholder">
-                    <p>Library Activity Statistics and Reports Placeholder</p>
+                    <p>Total Books: <span id="inventory-total">--</span></p>
+                    <p>Available Books: <span id="inventory-available">--</span></p>
+                    <p>Borrowed Books: <span id="inventory-borrowed">--</span></p>
                 </div>
 
             </div>
@@ -130,8 +101,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     const queueCountEl = document.getElementById("admin-queue-count");
     const btnCallNext = document.getElementById("btn-call-next");
 
-    async function updateLibrarianQueueView() {
-        // 1. Find who is currently being served
+    async function updateDashboard() {
+        // 1. Get Queue Data
         const { data: serving } = await supabaseClient
             .from('queue_entries')
             .select('queue_number, student_name')
@@ -146,13 +117,29 @@ document.addEventListener("DOMContentLoaded", async function() {
             currentServingEl.textContent = "--";
         }
 
-        // 2. Count how many are waiting
-        const { count } = await supabaseClient
+        const { count: queueCount } = await supabaseClient
             .from('queue_entries')
             .select('*', { count: 'exact', head: true })
             .eq('status', 'Waiting');
             
-        queueCountEl.textContent = (count || 0) + " students waiting in line.";
+        queueCountEl.textContent = (queueCount || 0) + " students waiting in line.";
+        document.getElementById("librarian-queue-count").textContent = queueCount || 0;
+
+        // 2. Get Borrowing Data
+        const { count: borrowedCount } = await supabaseClient
+            .from('borrowings')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'Borrowed');
+
+        document.getElementById("librarian-borrowed-count").textContent = borrowedCount || 0;
+        document.getElementById("inventory-borrowed").textContent = borrowedCount || 0;
+
+        // 3. Get Book Data (Assuming you have 10 hardcoded books for now)
+        // If you move books to a database later, you will change this to a Supabase query.
+        const totalBooks = typeof BOOKS !== 'undefined' ? BOOKS.length : 0;
+        document.getElementById("librarian-total-books").textContent = totalBooks;
+        document.getElementById("inventory-total").textContent = totalBooks;
+        document.getElementById("inventory-available").textContent = totalBooks - (borrowedCount || 0);
     }
 
     // Handle the "Call Next" button
@@ -160,13 +147,13 @@ document.addEventListener("DOMContentLoaded", async function() {
         btnCallNext.textContent = "Processing...";
         btnCallNext.disabled = true;
 
-        // 1. Mark the current serving person as 'Completed'
+        // 1. Complete current
         await supabaseClient
             .from('queue_entries')
             .update({ status: 'Completed' })
             .eq('status', 'Serving');
 
-        // 2. Find the next person in line
+        // 2. Find next
         const { data: nextUp } = await supabaseClient
             .from('queue_entries')
             .select('id')
@@ -175,7 +162,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             .limit(1)
             .maybeSingle();
 
-        // 3. Mark them as 'Serving'
+        // 3. Serve next
         if (nextUp) {
             await supabaseClient
                 .from('queue_entries')
@@ -188,15 +175,11 @@ document.addEventListener("DOMContentLoaded", async function() {
         btnCallNext.textContent = "Call Next Student";
         btnCallNext.disabled = false;
         
-        // Refresh the numbers on screen
-        updateLibrarianQueueView();
+        updateDashboard();
     });
 
-    // Run it immediately when the page loads
-    updateLibrarianQueueView();
-    
-    // Auto-refresh every 10 seconds
-    setInterval(updateLibrarianQueueView, 10000);
+    updateDashboard();
+    setInterval(updateDashboard, 10000); // Auto refresh every 10s
 });
 </script>
 </body>
