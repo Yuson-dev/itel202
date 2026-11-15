@@ -4,7 +4,7 @@
 
 /* ---------- 1. SUPABASE CONFIG ---------- */
 const SUPABASE_URL = "https://qkdlgxeapgnbqjtmrypw.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_MlmH0bwg65-St1MCE37Eow_1TZswdr_";
+const SUPABASE_ANON_KEY = "sb_publishable_MlmH0bwg65-StlMCE37Eow_1TZswdr_";
 
 const SUPABASE_READY = !SUPABASE_URL.includes("YOUR-PROJECT") && !SUPABASE_ANON_KEY.includes("YOUR-ANON-KEY");
 
