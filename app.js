@@ -3,6 +3,7 @@
    ========================================================= */
 
 /* ---------- 1. SUPABASE CONFIG ---------- */
+// REPLACE THESE WITH YOUR ACTUAL SUPABASE URL AND ANON KEY
 const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
 const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
 
@@ -22,8 +23,8 @@ const NAV_ITEMS = [
     { href: "borrowing.html",     label: "Borrowing" },
     { href: "history.html",       label: "History" },
     { href: "notifications.html", label: "Notifications" },
-    { href: "librarian.html",     label: "Librarian" },
-    { href: "admin.html",         label: "Admin" },
+    { href: "librarian.html",     label: "Librarian", roles: ["librarian", "admin"] }, // Restricted
+    { href: "admin.html",         label: "Admin", roles: ["admin"] }, // Restricted
     { href: "reports.html",       label: "Reports" }
 ];
 
@@ -112,10 +113,18 @@ function renderNav() {
     const nav = document.getElementById("main-nav");
     if (!nav) return;
 
+    const user = getCurrentUser();
+    const userRole = user ? (user.role || "student") : "student";
     const current = window.location.pathname.split("/").pop() || "dashboard.html";
+    
     nav.innerHTML = "";
 
     NAV_ITEMS.forEach(function (item) {
+        // If the menu item has role restrictions, check if the user has permission
+        if (item.roles && !item.roles.includes(userRole)) {
+            return; // Skip rendering this link
+        }
+
         const link = document.createElement("a");
         link.href = item.href;
         link.textContent = item.label;
@@ -138,6 +147,23 @@ document.addEventListener("DOMContentLoaded", function () {
     if (isProtected) {
         const user = requireAuth();
         if (!user) return; 
+
+        const role = user.role || "student";
+        const path = window.location.pathname;
+
+        // --- ADMIN GUARD ---
+        if (path.includes("admin.html") && role !== "admin") {
+            alert("Access Denied. You do not have administrator privileges.");
+            window.location.replace("dashboard.html");
+            return;
+        }
+
+        // --- LIBRARIAN GUARD ---
+        if (path.includes("librarian.html") && role !== "librarian" && role !== "admin") {
+            alert("Access Denied. You do not have librarian privileges.");
+            window.location.replace("dashboard.html");
+            return;
+        }
     }
 
     renderNav();
@@ -155,4 +181,46 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll("[data-user-role]").forEach(function (el) {
         el.textContent = user ? (user.role || "student") : "--";
     });
+
+    // --- LOAD ADMIN DATA ---
+    if (window.location.pathname.includes("admin.html") && SUPABASE_READY && supabaseClient) {
+        loadAdminUsers();
+    }
 });
+
+/* ---------- 8. ADMIN SPECIFIC FUNCTIONS ---------- */
+async function loadAdminUsers() {
+    const tbody = document.getElementById("admin-user-table-body");
+    if (!tbody) return; 
+
+    const { data: users, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .order('role', { ascending: true }); // Show admins first
+
+    if (error) {
+        console.error("Error loading users:", error);
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red;">Error loading users: ${error.message}</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = ""; 
+
+    users.forEach(user => {
+        const tr = document.createElement("tr");
+        
+        // Color code the roles
+        let roleColor = "black";
+        if (user.role === "admin") roleColor = "#d9534f"; // Red
+        if (user.role === "librarian") roleColor = "#f0ad4e"; // Orange
+
+        tr.innerHTML = `
+            <td>${user.student_id || 'N/A'}</td>
+            <td>${escapeHtml(user.full_name || 'N/A')}</td>
+            <td>${escapeHtml(user.username)}</td>
+            <td style="text-transform: capitalize; color: ${roleColor}; font-weight: bold;">${user.role || 'student'}</td>
+            <td><span style="color: green; font-weight: bold;">Active</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
