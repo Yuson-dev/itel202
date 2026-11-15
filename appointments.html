@@ -166,7 +166,8 @@ function renderAppointments() {
     });
 }
 
-document.getElementById("btn-book-appointment").addEventListener("click", function () {
+// --- BOOKING LOGIC WITH AUTO-QUEUE ---
+document.getElementById("btn-book-appointment").addEventListener("click", async function () {
     const time = document.getElementById("appt-time").value;
     const name = document.getElementById("appt-name").value.trim();
     const studentId = document.getElementById("appt-studentid").value.trim();
@@ -181,6 +182,7 @@ document.getElementById("btn-book-appointment").addEventListener("click", functi
         return;
     }
 
+    // 1. Save locally (so the table below updates immediately)
     const list = getAppointments();
     list.push({
         date: selectedDate,
@@ -192,8 +194,50 @@ document.getElementById("btn-book-appointment").addEventListener("click", functi
     });
     saveAppointments(list);
 
+    // 2. Automatically add to the REAL Supabase Queue
+    if (typeof SUPABASE_READY !== 'undefined' && SUPABASE_READY && supabaseClient) {
+        // Check if they are already in line
+        const { data: existing } = await supabaseClient
+            .from('queue_entries')
+            .select('*')
+            .eq('student_id', studentId)
+            .eq('status', 'Waiting')
+            .limit(1);
+
+        if (!existing || existing.length === 0) {
+            // Find the highest queue number
+            const { data: lastEntry } = await supabaseClient
+                .from('queue_entries')
+                .select('queue_number')
+                .order('queue_number', { ascending: false })
+                .limit(1);
+
+            const nextNumber = lastEntry && lastEntry.length > 0 ? lastEntry[0].queue_number + 1 : 1;
+
+            // Insert into the database
+            const { error: queueError } = await supabaseClient
+                .from('queue_entries')
+                .insert([{
+                    student_id: studentId,
+                    student_name: name,
+                    queue_number: nextNumber,
+                    status: 'Waiting'
+                }]);
+
+            if (queueError) {
+                console.error("Failed to add to queue:", queueError);
+                showMessage(apptMessage, "Appointment booked, but failed to join queue.", "error");
+            } else {
+                showMessage(apptMessage, "Appointment booked! You are automatically added to the Queue (Q-" + String(nextNumber).padStart(3, "0") + ")!", "success");
+            }
+        } else {
+            showMessage(apptMessage, "Appointment booked! (You were already in the queue)", "success");
+        }
+    } else {
+        showMessage(apptMessage, "Appointment booked for " + formatDate(selectedDate) + " at " + time + ".", "success");
+    }
+
     renderAppointments();
-    showMessage(apptMessage, "Appointment booked for " + formatDate(selectedDate) + " at " + time + ".", "success");
 });
 
 document.addEventListener("DOMContentLoaded", function () {

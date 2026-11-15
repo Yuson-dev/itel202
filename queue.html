@@ -24,17 +24,17 @@
 
             <div class="card">
                 <h3>Your Queue Number</h3>
-                <h1 id="my-queue">Q-025</h1>
+                <h1 id="my-queue">--</h1>
             </div>
 
             <div class="card">
                 <h3>Current Queue</h3>
-                <h1 id="current-queue">Q-020</h1>
+                <h1 id="current-queue">--</h1>
             </div>
 
             <div class="card">
                 <h3>Estimated Waiting Time</h3>
-                <h1 id="wait-time">15 Minutes</h1>
+                <h1 id="wait-time">--</h1>
             </div>
 
         </div>
@@ -43,9 +43,9 @@
 
         <div class="placeholder">
             <p><strong>Current Status:</strong>
-            <span class="status" id="queue-status">Waiting in Line</span></p>
+            <span class="status" id="queue-status">Loading...</span></p>
 
-            <p id="queue-ahead">There are currently 4 people ahead of you.</p>
+            <p id="queue-ahead">Fetching queue data...</p>
         </div>
 
         <button id="btn-refresh-queue">Refresh Queue Status</button>
@@ -61,61 +61,84 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script>
-/* ---------- Queue page logic ---------- */
-const QUEUE_KEY = "libraryQueue";
+/* ---------- REAL Queue page logic (Supabase) ---------- */
 
-function getQueueState() {
-    let state = null;
-    try {
-        state = JSON.parse(localStorage.getItem(QUEUE_KEY));
-    } catch (err) {
-        state = null;
+async function loadQueueStatus() {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) {
+        document.getElementById("queue-status").textContent = "Supabase not connected";
+        return;
     }
-    if (!state) {
-        state = { myNumber: 25, current: 20 };
-        localStorage.setItem(QUEUE_KEY, JSON.stringify(state));
-    }
-    return state;
-}
 
-function saveQueueState(state) {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(state));
-}
+    // 1. Get the currently serving queue number
+    const { data: servingData } = await supabaseClient
+        .from('queue_entries')
+        .select('queue_number')
+        .eq('status', 'Serving')
+        .order('queue_number', { ascending: true })
+        .limit(1)
+        .single();
 
-function pad(n) {
-    return String(n).padStart(3, "0");
-}
+    const currentServing = servingData ? servingData.queue_number : null;
 
-function renderQueue() {
-    const state = getQueueState();
-    const ahead = Math.max(state.myNumber - state.current - 1, 0);
+    // 2. Get THIS student's active queue entry
+    const { data: myEntry } = await supabaseClient
+        .from('queue_entries')
+        .select('*')
+        .eq('student_id', user.student_id)
+        .eq('status', 'Waiting')
+        .order('queue_number', { ascending: true })
+        .limit(1)
+        .single();
 
-    document.getElementById("my-queue").textContent = "Q-" + pad(state.myNumber);
-    document.getElementById("current-queue").textContent = "Q-" + pad(state.current);
-    document.getElementById("wait-time").textContent = (ahead * 3) + " Minutes";
-
+    const myNumberEl = document.getElementById("my-queue");
+    const currentQueueEl = document.getElementById("current-queue");
+    const waitTimeEl = document.getElementById("wait-time");
     const statusEl = document.getElementById("queue-status");
     const aheadEl = document.getElementById("queue-ahead");
 
-    if (ahead === 0) {
+    // Update the "Current Queue" card
+    currentQueueEl.textContent = currentServing ? "Q-" + String(currentServing).padStart(3, "0") : "--";
+
+    if (!myEntry) {
+        // If they haven't joined the queue
+        myNumberEl.textContent = "--";
+        waitTimeEl.textContent = "--";
+        statusEl.textContent = "Not in queue";
+        aheadEl.textContent = "You are not currently in the queue. Book an appointment to join.";
+        return;
+    }
+
+    // Update their personal queue card
+    myNumberEl.textContent = "Q-" + String(myEntry.queue_number).padStart(3, "0");
+
+    // Calculate how many people are ahead
+    const { count } = await supabaseClient
+        .from('queue_entries')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Waiting')
+        .lt('queue_number', myEntry.queue_number);
+
+    const peopleAhead = count || 0;
+
+    if (currentServing === myEntry.queue_number) {
         statusEl.textContent = "It's your turn!";
         aheadEl.textContent = "Please proceed to the counter.";
+        waitTimeEl.textContent = "Now!";
+        waitTimeEl.style.color = "var(--primary)";
     } else {
         statusEl.textContent = "Waiting in Line";
-        aheadEl.textContent = "There are currently " + ahead + " people ahead of you.";
+        aheadEl.textContent = "There are currently " + peopleAhead + " people ahead of you.";
+        waitTimeEl.textContent = (peopleAhead * 3) + " Minutes";
+        waitTimeEl.style.color = "inherit";
     }
 }
 
-document.getElementById("btn-refresh-queue").addEventListener("click", function () {
-    const state = getQueueState();
-    if (state.current < state.myNumber) {
-        state.current += 1;
-        saveQueueState(state);
-    }
-    renderQueue();
-});
+document.getElementById("btn-refresh-queue").addEventListener("click", loadQueueStatus);
 
-document.addEventListener("DOMContentLoaded", renderQueue);
+document.addEventListener("DOMContentLoaded", loadQueueStatus);
 </script>
 </body>
 </html>

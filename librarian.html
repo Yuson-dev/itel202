@@ -23,7 +23,7 @@
         <div class="sidebar-layout">
 
             <aside class="sidebar">
-                <h3 style="color:white;">Librarian Menu</h3>
+                <h3>Librarian Menu</h3>
                 <a href="librarian.html">Dashboard</a>
                 <a href="appointments.html">Appointments</a>
                 <a href="queue.html">Queue Monitoring</a>
@@ -84,9 +84,14 @@
 
                 <h3>Queue Monitoring</h3>
 
-                <div class="placeholder">
-                    <p>Current Queue: Q-020</p>
-                    <p>Next Queue: Q-021</p>
+                <div class="placeholder" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="font-size: 18px; margin-bottom: 5px;">Currently Serving: <strong id="admin-current-serving" style="color: var(--primary); font-size: 24px;">--</strong></p>
+                        <p class="muted" id="admin-queue-count">0 students waiting in line.</p>
+                    </div>
+                    <div>
+                        <button id="btn-call-next" style="background: var(--primary); color: white; font-weight: bold; border: none; padding: 12px 24px; border-radius: var(--radius); cursor: pointer;">Call Next Student</button>
+                    </div>
                 </div>
 
                 <h3>Book Inventory</h3>
@@ -117,5 +122,82 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async function() {
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) return;
+
+    const currentServingEl = document.getElementById("admin-current-serving");
+    const queueCountEl = document.getElementById("admin-queue-count");
+    const btnCallNext = document.getElementById("btn-call-next");
+
+    async function updateLibrarianQueueView() {
+        // 1. Find who is currently being served
+        const { data: serving } = await supabaseClient
+            .from('queue_entries')
+            .select('queue_number, student_name')
+            .eq('status', 'Serving')
+            .order('queue_number', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+        if (serving) {
+            currentServingEl.textContent = "Q-" + String(serving.queue_number).padStart(3, "0") + " (" + serving.student_name + ")";
+        } else {
+            currentServingEl.textContent = "--";
+        }
+
+        // 2. Count how many are waiting
+        const { count } = await supabaseClient
+            .from('queue_entries')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'Waiting');
+            
+        queueCountEl.textContent = (count || 0) + " students waiting in line.";
+    }
+
+    // Handle the "Call Next" button
+    btnCallNext.addEventListener("click", async function() {
+        btnCallNext.textContent = "Processing...";
+        btnCallNext.disabled = true;
+
+        // 1. Mark the current serving person as 'Completed'
+        await supabaseClient
+            .from('queue_entries')
+            .update({ status: 'Completed' })
+            .eq('status', 'Serving');
+
+        // 2. Find the next person in line
+        const { data: nextUp } = await supabaseClient
+            .from('queue_entries')
+            .select('id')
+            .eq('status', 'Waiting')
+            .order('queue_number', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+        // 3. Mark them as 'Serving'
+        if (nextUp) {
+            await supabaseClient
+                .from('queue_entries')
+                .update({ status: 'Serving' })
+                .eq('id', nextUp.id);
+        } else {
+            alert("No more students in the queue!");
+        }
+
+        btnCallNext.textContent = "Call Next Student";
+        btnCallNext.disabled = false;
+        
+        // Refresh the numbers on screen
+        updateLibrarianQueueView();
+    });
+
+    // Run it immediately when the page loads
+    updateLibrarianQueueView();
+    
+    // Auto-refresh every 10 seconds
+    setInterval(updateLibrarianQueueView, 10000);
+});
+</script>
 </body>
 </html>
