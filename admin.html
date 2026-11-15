@@ -23,7 +23,7 @@
         <div class="sidebar-layout">
 
             <aside class="sidebar">
-                <h3 style="color:white;">Admin Menu</h3>
+                <h3>Admin Menu</h3>
                 <a href="admin.html">Dashboard</a>
                 <a href="admin.html#users">User Management</a>
                 <a href="admin.html#settings">System Settings</a>
@@ -39,17 +39,17 @@
 
                     <div class="card">
                         <h3>Registered Users</h3>
-                        <h2>250</h2>
+                        <h2 id="stat-total-users">--</h2>
                     </div>
 
                     <div class="card">
                         <h3>Librarians</h3>
-                        <h2>10</h2>
+                        <h2 id="stat-librarians">--</h2>
                     </div>
 
                     <div class="card">
                         <h3>Administrators</h3>
-                        <h2>2</h2>
+                        <h2 id="stat-admins">--</h2>
                     </div>
 
                 </div>
@@ -57,34 +57,19 @@
                 <h3 id="users">User Management</h3>
 
                 <table>
-                    <tr>
-                        <th>User ID</th>
-                        <th>Name</th>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                    </tr>
-
-                    <tr>
-                        <td>R001</td>
-                        <td>Mark Yuson</td>
-                        <td>mark123</td>
-                        <td>Student</td>
-                        <td>Active</td>
-                    </tr>
-
-                    <tr>
-                        <td>R002</td>
-                        <td>Althea De Roma</td>
-                        <td>althea123</td>
-                        <td>Librarian</td>
-                        <td>Active</td>
-                    </tr>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-user-table-body">
+                        <tr><td colspan="5" class="muted">Loading users...</td></tr>
+                    </tbody>
                 </table>
-
-                <button>Add User</button>
-                <button class="secondary">Edit User</button>
-                <button class="secondary">Delete User</button>
 
                 <h3 id="settings">System Settings</h3>
 
@@ -124,5 +109,51 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) return;
+
+    // Fetch all users once
+    const { data: users, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .order('role', { ascending: true });
+
+    if (error) {
+        document.getElementById("admin-user-table-body").innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
+        return;
+    }
+
+    // 1. Update Top Cards (Counts)
+    const totalUsers = users.length;
+    const librarianCount = users.filter(u => u.role === "librarian").length;
+    const adminCount = users.filter(u => u.role === "admin").length;
+
+    document.getElementById("stat-total-users").textContent = totalUsers;
+    document.getElementById("stat-librarians").textContent = librarianCount;
+    document.getElementById("stat-admins").textContent = adminCount;
+
+    // 2. Populate User Table
+    const tbody = document.getElementById("admin-user-table-body");
+    tbody.innerHTML = "";
+
+    users.forEach(user => {
+        const tr = document.createElement("tr");
+        
+        let roleColor = "black";
+        if (user.role === "admin") roleColor = "#d9534f"; // Red
+        if (user.role === "librarian") roleColor = "#f0ad4e"; // Orange
+
+        tr.innerHTML = `
+            <td>${user.student_id || 'N/A'}</td>
+            <td>${escapeHtml(user.full_name || 'N/A')}</td>
+            <td>${escapeHtml(user.username)}</td>
+            <td style="text-transform: capitalize; color: ${roleColor}; font-weight: bold;">${user.role || 'student'}</td>
+            <td><span style="color: green; font-weight: bold;">Active</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+});
+</script>
 </body>
 </html>
