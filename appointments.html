@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appointments | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="appointments">
+
+        <h2>Online Appointment Booking</h2>
+
+        <h3>Select Appointment Date</h3>
+
+        <div class="placeholder">
+            <h3>November 2026</h3>
+            <div class="calendar" id="calendar"></div>
+            <p class="muted">Selected date: <strong id="selected-date">none</strong></p>
+        </div>
+
+        <h3>Available Time Slots</h3>
+
+        <select id="appt-time">
+            <option value="">Select Time Slot</option>
+            <option>8:00 AM - 9:00 AM</option>
+            <option>9:00 AM - 10:00 AM</option>
+            <option>10:00 AM - 11:00 AM</option>
+            <option>1:00 PM - 2:00 PM</option>
+            <option>2:00 PM - 3:00 PM</option>
+        </select>
+
+        <h3>Appointment Details</h3>
+
+        <label>Student Name</label>
+        <input type="text" id="appt-name" placeholder="Enter student name">
+
+        <label>Student ID</label>
+        <input type="text" id="appt-studentid" placeholder="Enter student ID">
+
+        <label>Purpose of Visit</label>
+        <select id="appt-purpose">
+            <option value="">Select Purpose</option>
+            <option>Book Borrowing</option>
+            <option>Book Returning</option>
+            <option>Research</option>
+            <option>Other</option>
+        </select>
+
+        <button id="btn-book-appointment">Book Appointment</button>
+
+        <p id="appt-message" class="hidden"></p>
+
+        <h3>My Appointments</h3>
+
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Time Slot</th>
+                <th>Purpose</th>
+                <th>Status</th>
+            </tr>
+            <tbody id="appt-table-body"></tbody>
+        </table>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+/* ---------- Appointments page logic ---------- */
+const APPT_KEY = "libraryAppointments";
+const calendarEl = document.getElementById("calendar");
+const selectedDateEl = document.getElementById("selected-date");
+const apptMessage = document.getElementById("appt-message");
+const apptTableBody = document.getElementById("appt-table-body");
+
+let selectedDate = null;
+
+function getAppointments() {
+    try {
+        return JSON.parse(localStorage.getItem(APPT_KEY)) || [];
+    } catch (err) {
+        return [];
+    }
+}
+
+function saveAppointments(list) {
+    localStorage.setItem(APPT_KEY, JSON.stringify(list));
+}
+
+function renderCalendar() {
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    calendarEl.innerHTML = "";
+
+    weekdays.forEach(function (d) {
+        const el = document.createElement("div");
+        el.className = "day";
+        el.textContent = d;
+        calendarEl.appendChild(el);
+    });
+
+    const firstDay = new Date(2026, 10, 1).getDay();  // November 2026
+    const daysInMonth = 30;
+
+    for (let i = 0; i < firstDay; i++) {
+        const blank = document.createElement("div");
+        blank.className = "empty";
+        calendarEl.appendChild(blank);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const cell = document.createElement("div");
+        cell.textContent = day;
+        cell.dataset.day = day;
+
+        cell.addEventListener("click", function () {
+            document.querySelectorAll("#calendar .selected").forEach(function (el) {
+                el.classList.remove("selected");
+            });
+            cell.classList.add("selected");
+            selectedDate = "2026-11-" + String(day).padStart(2, "0");
+            selectedDateEl.textContent = formatDate(selectedDate);
+        });
+
+        calendarEl.appendChild(cell);
+    }
+}
+
+function renderAppointments() {
+    const user = getCurrentUser();
+    const mine = getAppointments().filter(function (a) {
+        return user && a.studentId === user.student_id;
+    });
+
+    apptTableBody.innerHTML = "";
+
+    if (mine.length === 0) {
+        apptTableBody.innerHTML = '<tr><td colspan="4" class="muted">No appointments booked yet.</td></tr>';
+        return;
+    }
+
+    mine.forEach(function (a) {
+        const row = document.createElement("tr");
+        row.innerHTML =
+            "<td>" + formatDate(a.date) + "</td>" +
+            "<td>" + escapeHtml(a.time) + "</td>" +
+            "<td>" + escapeHtml(a.purpose) + "</td>" +
+            '<td><span class="status">' + escapeHtml(a.status) + "</span></td>";
+        apptTableBody.appendChild(row);
+    });
+}
+
+document.getElementById("btn-book-appointment").addEventListener("click", function () {
+    const time = document.getElementById("appt-time").value;
+    const name = document.getElementById("appt-name").value.trim();
+    const studentId = document.getElementById("appt-studentid").value.trim();
+    const purpose = document.getElementById("appt-purpose").value;
+
+    if (!selectedDate) {
+        showMessage(apptMessage, "Please select a date from the calendar.", "error");
+        return;
+    }
+    if (!time || !name || !studentId || !purpose) {
+        showMessage(apptMessage, "Please complete all appointment details.", "error");
+        return;
+    }
+
+    const list = getAppointments();
+    list.push({
+        date: selectedDate,
+        time: time,
+        studentName: name,
+        studentId: studentId,
+        purpose: purpose,
+        status: "Pending"
+    });
+    saveAppointments(list);
+
+    renderAppointments();
+    showMessage(apptMessage, "Appointment booked for " + formatDate(selectedDate) + " at " + time + ".", "success");
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    renderCalendar();
+
+    const user = getCurrentUser();
+    if (user) {
+        document.getElementById("appt-name").value = user.full_name || "";
+        document.getElementById("appt-studentid").value = user.student_id || "";
+    }
+
+    renderAppointments();
+});
+</script>
+</body>
+</html>

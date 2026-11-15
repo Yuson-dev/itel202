@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="dashboard">
+
+        <h2>Home Dashboard</h2>
+
+        <div class="placeholder" style="text-align:center;">
+            <h2>Welcome to the Library!</h2>
+            <p>Hello, <strong data-user-name>--</strong>! Manage your library appointments, books, and queue status.</p>
+        </div>
+
+        <h3>Quick Access</h3>
+
+        <div class="card-container">
+
+            <div class="card">
+                <h3>Books</h3>
+                <p>Search and check book availability.</p>
+                <button onclick="location.href='books.html'">Browse Books</button>
+            </div>
+
+            <div class="card">
+                <h3>Appointments</h3>
+                <p>Schedule your library visit.</p>
+                <button onclick="location.href='appointments.html'">Book Appointment</button>
+            </div>
+
+            <div class="card">
+                <h3>Queue Status</h3>
+                <p>Check your current queue position.</p>
+                <button onclick="location.href='queue.html'">View Queue</button>
+            </div>
+
+            <div class="card">
+                <h3>History</h3>
+                <p>View previous borrowing records.</p>
+                <button onclick="location.href='history.html'">View History</button>
+            </div>
+
+        </div>
+
+        <h3>Announcements</h3>
+
+        <div class="placeholder">
+            <p>No announcements available.</p>
+        </div>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+</body>
+</html>

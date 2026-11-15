@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Queue Status | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="queue">
+
+        <h2>Queue Management</h2>
+
+        <div class="card-container">
+
+            <div class="card">
+                <h3>Your Queue Number</h3>
+                <h1 id="my-queue">Q-025</h1>
+            </div>
+
+            <div class="card">
+                <h3>Current Queue</h3>
+                <h1 id="current-queue">Q-020</h1>
+            </div>
+
+            <div class="card">
+                <h3>Estimated Waiting Time</h3>
+                <h1 id="wait-time">15 Minutes</h1>
+            </div>
+
+        </div>
+
+        <h3>Queue Status</h3>
+
+        <div class="placeholder">
+            <p><strong>Current Status:</strong>
+            <span class="status" id="queue-status">Waiting in Line</span></p>
+
+            <p id="queue-ahead">There are currently 4 people ahead of you.</p>
+        </div>
+
+        <button id="btn-refresh-queue">Refresh Queue Status</button>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+/* ---------- Queue page logic ---------- */
+const QUEUE_KEY = "libraryQueue";
+
+function getQueueState() {
+    let state = null;
+    try {
+        state = JSON.parse(localStorage.getItem(QUEUE_KEY));
+    } catch (err) {
+        state = null;
+    }
+    if (!state) {
+        state = { myNumber: 25, current: 20 };
+        localStorage.setItem(QUEUE_KEY, JSON.stringify(state));
+    }
+    return state;
+}
+
+function saveQueueState(state) {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(state));
+}
+
+function pad(n) {
+    return String(n).padStart(3, "0");
+}
+
+function renderQueue() {
+    const state = getQueueState();
+    const ahead = Math.max(state.myNumber - state.current - 1, 0);
+
+    document.getElementById("my-queue").textContent = "Q-" + pad(state.myNumber);
+    document.getElementById("current-queue").textContent = "Q-" + pad(state.current);
+    document.getElementById("wait-time").textContent = (ahead * 3) + " Minutes";
+
+    const statusEl = document.getElementById("queue-status");
+    const aheadEl = document.getElementById("queue-ahead");
+
+    if (ahead === 0) {
+        statusEl.textContent = "It's your turn!";
+        aheadEl.textContent = "Please proceed to the counter.";
+    } else {
+        statusEl.textContent = "Waiting in Line";
+        aheadEl.textContent = "There are currently " + ahead + " people ahead of you.";
+    }
+}
+
+document.getElementById("btn-refresh-queue").addEventListener("click", function () {
+    const state = getQueueState();
+    if (state.current < state.myNumber) {
+        state.current += 1;
+        saveQueueState(state);
+    }
+    renderQueue();
+});
+
+document.addEventListener("DOMContentLoaded", renderQueue);
+</script>
+</body>
+</html>
