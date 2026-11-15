@@ -40,24 +40,47 @@
                 <div class="card-container">
 
                     <div class="card">
+                        <h3>Appointments</h3>
+                        <h2 id="stat-appointments">--</h2>
+                        <p>Scheduled today</p>
+                    </div>
+
+                    <div class="card">
                         <h3>Queue</h3>
-                        <h2 id="librarian-queue-count">--</h2>
+                        <h2 id="stat-queue">--</h2>
                         <p>Students waiting</p>
                     </div>
 
                     <div class="card">
                         <h3>Total Books</h3>
-                        <h2 id="librarian-total-books">--</h2>
+                        <h2 id="stat-total-books">--</h2>
                         <p>Registered books</p>
                     </div>
 
                     <div class="card">
                         <h3>Borrowed Books</h3>
-                        <h2 id="librarian-borrowed-count">--</h2>
+                        <h2 id="stat-borrowed-books">--</h2>
                         <p>Currently borrowed</p>
                     </div>
 
                 </div>
+
+                <h3>Appointment Management</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Purpose</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="librarian-appt-table">
+                        <tr><td colspan="5" class="muted">Loading appointments...</td></tr>
+                    </tbody>
+                </table>
 
                 <h3>Queue Monitoring</h3>
 
@@ -100,16 +123,13 @@ document.addEventListener("DOMContentLoaded", async function() {
     const currentServingEl = document.getElementById("admin-current-serving");
     const queueCountEl = document.getElementById("admin-queue-count");
     const btnCallNext = document.getElementById("btn-call-next");
+    const apptTableBody = document.getElementById("librarian-appt-table");
 
     async function updateDashboard() {
-        // 1. Get Queue Data
+        // --- 1. QUEUE DATA ---
         const { data: serving } = await supabaseClient
-            .from('queue_entries')
-            .select('queue_number, student_name')
-            .eq('status', 'Serving')
-            .order('queue_number', { ascending: true })
-            .limit(1)
-            .maybeSingle();
+            .from('queue_entries').select('queue_number, student_name')
+            .eq('status', 'Serving').order('queue_number', { ascending: true }).limit(1).maybeSingle();
 
         if (serving) {
             currentServingEl.textContent = "Q-" + String(serving.queue_number).padStart(3, "0") + " (" + serving.student_name + ")";
@@ -118,68 +138,78 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
 
         const { count: queueCount } = await supabaseClient
-            .from('queue_entries')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'Waiting');
+            .from('queue_entries').select('*', { count: 'exact', head: true }).eq('status', 'Waiting');
             
         queueCountEl.textContent = (queueCount || 0) + " students waiting in line.";
-        document.getElementById("librarian-queue-count").textContent = queueCount || 0;
+        document.getElementById("stat-queue").textContent = queueCount || 0;
 
-        // 2. Get Borrowing Data
-        const { count: borrowedCount } = await supabaseClient
-            .from('borrowings')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'Borrowed');
+        // --- 2. BOOK DATA ---
+        const { count: totalBooks } = await supabaseClient
+            .from('books').select('*', { count: 'exact', head: true });
+            
+        const { count: borrowedBooks } = await supabaseClient
+            .from('borrowings').select('*', { count: 'exact', head: true }).eq('status', 'Borrowed');
 
-        document.getElementById("librarian-borrowed-count").textContent = borrowedCount || 0;
-        document.getElementById("inventory-borrowed").textContent = borrowedCount || 0;
+        document.getElementById("stat-total-books").textContent = totalBooks || 0;
+        document.getElementById("stat-borrowed-books").textContent = borrowedBooks || 0;
+        document.getElementById("inventory-total").textContent = totalBooks || 0;
+        document.getElementById("inventory-borrowed").textContent = borrowedBooks || 0;
+        document.getElementById("inventory-available").textContent = (totalBooks || 0) - (borrowedBooks || 0);
 
-        // 3. Get Book Data (Assuming you have 10 hardcoded books for now)
-        // If you move books to a database later, you will change this to a Supabase query.
-        const totalBooks = typeof BOOKS !== 'undefined' ? BOOKS.length : 0;
-        document.getElementById("librarian-total-books").textContent = totalBooks;
-        document.getElementById("inventory-total").textContent = totalBooks;
-        document.getElementById("inventory-available").textContent = totalBooks - (borrowedCount || 0);
+        // --- 3. APPOINTMENTS DATA ---
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split("T")[0];
+        
+        const { data: appointments } = await supabaseClient
+            .from('appointments')
+            .select('*')
+            .gte('date', today) // Only get appointments from today onwards
+            .order('date', { ascending: true });
+
+        if (appointments) {
+            document.getElementById("stat-appointments").textContent = appointments.length;
+            
+            apptTableBody.innerHTML = "";
+            if (appointments.length === 0) {
+                apptTableBody.innerHTML = '<tr><td colspan="5" class="muted">No upcoming appointments.</td></tr>';
+            } else {
+                appointments.forEach(appt => {
+                    apptTableBody.innerHTML += `<tr>
+                        <td>${escapeHtml(appt.student_name || appt.studentName || 'N/A')}</td>
+                        <td>${formatDate(appt.date)}</td>
+                        <td>${escapeHtml(appt.time)}</td>
+                        <td>${escapeHtml(appt.purpose)}</td>
+                        <td><span class="status">${escapeHtml(appt.status)}</span></td>
+                    </tr>`;
+                });
+            }
+        }
     }
 
-    // Handle the "Call Next" button
+    // Handle Call Next
     btnCallNext.addEventListener("click", async function() {
         btnCallNext.textContent = "Processing...";
         btnCallNext.disabled = true;
 
-        // 1. Complete current
-        await supabaseClient
-            .from('queue_entries')
-            .update({ status: 'Completed' })
-            .eq('status', 'Serving');
+        await supabaseClient.from('queue_entries').update({ status: 'Completed' }).eq('status', 'Serving');
 
-        // 2. Find next
         const { data: nextUp } = await supabaseClient
-            .from('queue_entries')
-            .select('id')
-            .eq('status', 'Waiting')
-            .order('queue_number', { ascending: true })
-            .limit(1)
-            .maybeSingle();
+            .from('queue_entries').select('id')
+            .eq('status', 'Waiting').order('queue_number', { ascending: true }).limit(1).maybeSingle();
 
-        // 3. Serve next
         if (nextUp) {
-            await supabaseClient
-                .from('queue_entries')
-                .update({ status: 'Serving' })
-                .eq('id', nextUp.id);
+            await supabaseClient.from('queue_entries').update({ status: 'Serving' }).eq('id', nextUp.id);
         } else {
             alert("No more students in the queue!");
         }
 
         btnCallNext.textContent = "Call Next Student";
         btnCallNext.disabled = false;
-        
         updateDashboard();
     });
 
     updateDashboard();
-    setInterval(updateDashboard, 10000); // Auto refresh every 10s
+    setInterval(updateDashboard, 10000); // Refresh every 10s
 });
 </script>
 </body>

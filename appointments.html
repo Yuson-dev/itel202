@@ -23,7 +23,7 @@
         <h3>Select Appointment Date</h3>
 
         <div class="placeholder">
-            <h3>November 2026</h3>
+            <h3 id="calendar-month-year">Month Year</h3>
             <div class="calendar" id="calendar"></div>
             <p class="muted">Selected date: <strong id="selected-date">none</strong></p>
         </div>
@@ -83,26 +83,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script>
-/* ---------- Appointments page logic ---------- */
-const APPT_KEY = "libraryAppointments";
 const calendarEl = document.getElementById("calendar");
 const selectedDateEl = document.getElementById("selected-date");
 const apptMessage = document.getElementById("appt-message");
 const apptTableBody = document.getElementById("appt-table-body");
 
 let selectedDate = null;
-
-function getAppointments() {
-    try {
-        return JSON.parse(localStorage.getItem(APPT_KEY)) || [];
-    } catch (err) {
-        return [];
-    }
-}
-
-function saveAppointments(list) {
-    localStorage.setItem(APPT_KEY, JSON.stringify(list));
-}
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
 
 function renderCalendar() {
     const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -115,8 +103,12 @@ function renderCalendar() {
         calendarEl.appendChild(el);
     });
 
-    const firstDay = new Date(2026, 10, 1).getDay();  // November 2026
-    const daysInMonth = 30;
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    // Update Header
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    document.getElementById("calendar-month-year").textContent = monthNames[currentMonth] + " " + currentYear;
 
     for (let i = 0; i < firstDay; i++) {
         const blank = document.createElement("div");
@@ -127,14 +119,15 @@ function renderCalendar() {
     for (let day = 1; day <= daysInMonth; day++) {
         const cell = document.createElement("div");
         cell.textContent = day;
-        cell.dataset.day = day;
-
+        
         cell.addEventListener("click", function () {
             document.querySelectorAll("#calendar .selected").forEach(function (el) {
                 el.classList.remove("selected");
             });
             cell.classList.add("selected");
-            selectedDate = "2026-11-" + String(day).padStart(2, "0");
+            const monthStr = String(currentMonth + 1).padStart(2, "0");
+            const dayStr = String(day).padStart(2, "0");
+            selectedDate = currentYear + "-" + monthStr + "-" + dayStr;
             selectedDateEl.textContent = formatDate(selectedDate);
         });
 
@@ -142,15 +135,19 @@ function renderCalendar() {
     }
 }
 
-function renderAppointments() {
+async function renderAppointments() {
     const user = getCurrentUser();
-    const mine = getAppointments().filter(function (a) {
-        return user && a.studentId === user.student_id;
-    });
+    if (!user || typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY) return;
+
+    const { data: mine, error } = await supabaseClient
+        .from('appointments')
+        .select('*')
+        .eq('student_id', user.student_id)
+        .order('date', { ascending: true });
 
     apptTableBody.innerHTML = "";
 
-    if (mine.length === 0) {
+    if (error || !mine || mine.length === 0) {
         apptTableBody.innerHTML = '<tr><td colspan="4" class="muted">No appointments booked yet.</td></tr>';
         return;
     }
@@ -166,7 +163,6 @@ function renderAppointments() {
     });
 }
 
-// --- BOOKING LOGIC WITH AUTO-QUEUE ---
 document.getElementById("btn-book-appointment").addEventListener("click", async function () {
     const time = document.getElementById("appt-time").value;
     const name = document.getElementById("appt-name").value.trim();
@@ -182,59 +178,52 @@ document.getElementById("btn-book-appointment").addEventListener("click", async 
         return;
     }
 
-    // 1. Save locally (so the table below updates immediately)
-    const list = getAppointments();
-    list.push({
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) {
+        showMessage(apptMessage, "Database not connected.", "error");
+        return;
+    }
+
+    // 1. Save Appointment to Supabase
+    const newAppt = {
+        student_id: studentId,
+        student_name: name,
         date: selectedDate,
         time: time,
-        studentName: name,
-        studentId: studentId,
         purpose: purpose,
         status: "Pending"
-    });
-    saveAppointments(list);
+    };
 
-    // 2. Automatically add to the REAL Supabase Queue
-    if (typeof SUPABASE_READY !== 'undefined' && SUPABASE_READY && supabaseClient) {
-        // Check if they are already in line
-        const { data: existing } = await supabaseClient
-            .from('queue_entries')
-            .select('*')
-            .eq('student_id', studentId)
-            .eq('status', 'Waiting')
-            .limit(1);
+    const { error: apptError } = await supabaseClient.from('appointments').insert([newAppt]);
 
-        if (!existing || existing.length === 0) {
-            // Find the highest queue number
-            const { data: lastEntry } = await supabaseClient
-                .from('queue_entries')
-                .select('queue_number')
-                .order('queue_number', { ascending: false })
-                .limit(1);
+    if (apptError) {
+        showMessage(apptMessage, "Error booking appointment: " + apptError.message, "error");
+        return;
+    }
 
-            const nextNumber = lastEntry && lastEntry.length > 0 ? lastEntry[0].queue_number + 1 : 1;
+    // 2. Automatically add to Queue
+    const { data: existing } = await supabaseClient
+        .from('queue_entries').select('*').eq('student_id', studentId).eq('status', 'Waiting').limit(1);
 
-            // Insert into the database
-            const { error: queueError } = await supabaseClient
-                .from('queue_entries')
-                .insert([{
-                    student_id: studentId,
-                    student_name: name,
-                    queue_number: nextNumber,
-                    status: 'Waiting'
-                }]);
+    if (!existing || existing.length === 0) {
+        const { data: lastEntry } = await supabaseClient
+            .from('queue_entries').select('queue_number').order('queue_number', { ascending: false }).limit(1);
 
-            if (queueError) {
-                console.error("Failed to add to queue:", queueError);
-                showMessage(apptMessage, "Appointment booked, but failed to join queue.", "error");
-            } else {
-                showMessage(apptMessage, "Appointment booked! You are automatically added to the Queue (Q-" + String(nextNumber).padStart(3, "0") + ")!", "success");
-            }
-        } else {
-            showMessage(apptMessage, "Appointment booked! (You were already in the queue)", "success");
-        }
+        const nextNumber = lastEntry && lastEntry.length > 0 ? lastEntry[0].queue_number + 1 : 1;
+
+        await supabaseClient.from('queue_entries').insert([{
+            student_id: studentId, student_name: name, queue_number: nextNumber, status: 'Waiting'
+        }]);
+
+        // 3. Create Notification
+        await supabaseClient.from('notifications').insert([{
+            student_id: studentId,
+            title: "Appointment Confirmed",
+            message: "Your appointment for " + formatDate(selectedDate) + " at " + time + " has been scheduled. Your queue number is Q-" + String(nextNumber).padStart(3, "0") + "."
+        }]);
+
+        showMessage(apptMessage, "Appointment booked! You are automatically added to the Queue (Q-" + String(nextNumber).padStart(3, "0") + ")!", "success");
     } else {
-        showMessage(apptMessage, "Appointment booked for " + formatDate(selectedDate) + " at " + time + ".", "success");
+        showMessage(apptMessage, "Appointment booked! (You were already in the queue)", "success");
     }
 
     renderAppointments();
