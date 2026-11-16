@@ -5,6 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Appointments | Library Management System</title>
 <link rel="stylesheet" href="style.css">
+<style>
+    /* Added styles for the calendar header buttons */
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .calendar-header button {
+        padding: 8px 16px;
+        font-size: 14px;
+        margin: 0;
+    }
+    .calendar-header h3 {
+        margin: 0;
+        border: none;
+        padding: 0;
+    }
+    /* Styling for past days (disabled) */
+    .calendar .disabled-day {
+        color: #ccc;
+        background: #fafafa;
+        cursor: not-allowed !important;
+    }
+    .calendar .disabled-day:hover {
+        background: #fafafa;
+    }
+</style>
 </head>
 <body data-protected>
 
@@ -23,7 +51,11 @@
         <h3>Select Appointment Date</h3>
 
         <div class="placeholder">
-            <h3 id="calendar-month-year">Month Year</h3>
+            <div class="calendar-header">
+                <button class="secondary" id="btn-prev-month">&lt; Prev</button>
+                <h3 id="calendar-month-year">Month Year</h3>
+                <button class="secondary" id="btn-next-month">Next &gt;</button>
+            </div>
             <div class="calendar" id="calendar"></div>
             <p class="muted">Selected date: <strong id="selected-date">none</strong></p>
         </div>
@@ -32,6 +64,11 @@
 
         <select id="appt-time">
             <option value="">Select Time Slot</option>
+            <option>8:00 AM - 9:00 AM</option>
+            <option>9:00 AM - 10:00 AM</option>
+            <option>10:00 AM - 11:00 AM</option>
+            <option>1:00 PM - 2:00 PM</option>
+            <option>2:00 PM - 3:00 PM</option>
         </select>
 
         <h3>Appointment Details</h3>
@@ -84,8 +121,9 @@ const apptMessage = document.getElementById("appt-message");
 const apptTableBody = document.getElementById("appt-table-body");
 
 let selectedDate = null;
-let currentMonth = new Date().getMonth();
-let currentYear = new Date().getFullYear();
+const today = new Date();
+let currentMonth = today.getMonth();
+let currentYear = today.getFullYear();
 
 function renderCalendar() {
     const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -115,20 +153,54 @@ function renderCalendar() {
         const cell = document.createElement("div");
         cell.textContent = day;
         
-        cell.addEventListener("click", function () {
-            document.querySelectorAll("#calendar .selected").forEach(function (el) {
-                el.classList.remove("selected");
+        // Create a date object for this specific day to check if it's in the past
+        const cellDate = new Date(currentYear, currentMonth, day);
+        cellDate.setHours(0, 0, 0, 0);
+        
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
+
+        if (cellDate < todayMidnight) {
+            // If the date is before today, disable it
+            cell.className = "disabled-day";
+            cell.title = "Past dates cannot be selected";
+        } else {
+            // Otherwise, make it clickable
+            cell.addEventListener("click", function () {
+                document.querySelectorAll("#calendar .selected").forEach(function (el) {
+                    el.classList.remove("selected");
+                });
+                cell.classList.add("selected");
+                
+                // Format using local time to avoid timezone bugs
+                const monthStr = String(currentMonth + 1).padStart(2, "0");
+                const dayStr = String(day).padStart(2, "0");
+                selectedDate = currentYear + "-" + monthStr + "-" + dayStr;
+                selectedDateEl.textContent = formatDate(selectedDate);
             });
-            cell.classList.add("selected");
-            const monthStr = String(currentMonth + 1).padStart(2, "0");
-            const dayStr = String(day).padStart(2, "0");
-            selectedDate = currentYear + "-" + monthStr + "-" + dayStr;
-            selectedDateEl.textContent = formatDate(selectedDate);
-        });
+        }
 
         calendarEl.appendChild(cell);
     }
 }
+
+document.getElementById("btn-prev-month").addEventListener("click", function() {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    renderCalendar();
+});
+
+document.getElementById("btn-next-month").addEventListener("click", function() {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    renderCalendar();
+});
 
 async function renderAppointments() {
     const user = getCurrentUser();
@@ -194,7 +266,6 @@ document.getElementById("btn-book-appointment").addEventListener("click", async 
         return;
     }
 
-    // Check if the student is already in the queue before inserting
     const { data: existing } = await supabaseClient
         .from('queue_entries').select('*').eq('student_id', studentId).eq('status', 'Waiting').limit(1);
 
@@ -220,24 +291,6 @@ document.getElementById("btn-book-appointment").addEventListener("click", async 
     }
 
     renderAppointments();
-});
-
-// Generate time slots dynamically
-const timeSelect = document.getElementById("appt-time");
-const slots = [
-    "8:00 AM - 9:00 AM",
-    "9:00 AM - 10:00 AM",
-    "10:00 AM - 11:00 AM",
-    "1:00 PM - 2:00 PM",
-    "2:00 PM - 3:00 PM",
-    "3:00 PM - 4:00 PM"
-];
-
-slots.forEach(slot => {
-    const option = document.createElement("option");
-    option.value = slot;
-    option.textContent = slot;
-    timeSelect.appendChild(option);
 });
 
 document.addEventListener("DOMContentLoaded", function () {
