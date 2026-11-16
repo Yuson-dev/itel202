@@ -21,8 +21,9 @@
         <h2>My Profile</h2>
 
         <div class="sidebar-layout">
-            <div class="main-content" style="max-width: 600px; margin: 0 auto;">
-                <div class="placeholder" style="text-align: center; padding: 40px;">
+            <div class="main-content" style="max-width: 800px; margin: 0 auto;">
+                
+                <div class="placeholder" style="text-align: center; padding: 40px; margin-bottom: 20px;">
                     <div style="background: var(--primary); color: white; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px auto;">
                         <span id="profile-initial">U</span>
                     </div>
@@ -41,6 +42,29 @@
                         <input type="text" id="profile-status" readonly style="background-color: #f9f9f9; color: green; font-weight: bold;">
                     </div>
                 </div>
+
+                <h3>Current Library Activity</h3>
+                
+                <div id="activity-warning" class="message error hidden" style="margin-bottom: 20px;">
+                    You currently have an active book. You must return it or wait for your reservation to expire before booking another.
+                </div>
+
+                <div class="card-container" style="grid-template-columns: 1fr 1fr;">
+                    <div class="card">
+                        <h3>Currently Borrowed</h3>
+                        <div id="active-borrow-display">
+                            <p class="muted">Checking records...</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Reserved Book</h3>
+                        <div id="active-reserve-display">
+                            <p class="muted">Checking records...</p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -67,16 +91,63 @@ document.addEventListener("DOMContentLoaded", async function () {
     const initial = (user.full_name || user.username).charAt(0).toUpperCase();
     document.getElementById("profile-initial").textContent = initial;
 
-    if (typeof SUPABASE_READY !== 'undefined' && SUPABASE_READY && supabaseClient) {
-        const { data } = await supabaseClient
-            .from('users')
-            .select('status')
-            .eq('username', user.username)
-            .maybeSingle();
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) return;
 
-        if (data) {
-            document.getElementById("profile-status").value = data.status || "Active";
+    const { data: userData } = await supabaseClient
+        .from('users').select('status').eq('username', user.username).maybeSingle();
+    if (userData) {
+        document.getElementById("profile-status").value = userData.status || "Active";
+    }
+
+    // Check Borrowed
+    const { data: borrowedData } = await supabaseClient
+        .from('borrowings')
+        .select('*')
+        .eq('student_id', user.student_id)
+        .eq('status', 'Borrowed')
+        .limit(1)
+        .maybeSingle();
+
+    const borrowDisplay = document.getElementById("active-borrow-display");
+    if (borrowedData) {
+        borrowDisplay.innerHTML = `
+            <h4 style="color: var(--primary); margin-bottom: 5px;">${escapeHtml(borrowedData.book_title)}</h4>
+            <p style="font-size: 14px; margin-bottom: 5px;">ID: ${escapeHtml(borrowedData.book_id)}</p>
+            <p class="muted" style="font-size: 12px;">Due: ${formatDate(borrowedData.due_date)}</p>
+        `;
+        document.getElementById("activity-warning").classList.remove("hidden");
+    } else {
+        borrowDisplay.innerHTML = `<p class="muted">No books currently borrowed.</p>`;
+    }
+
+    // Check Reserved
+    const { data: notifData } = await supabaseClient
+        .from('notifications')
+        .select('*')
+        .eq('student_id', user.student_id)
+        .eq('title', 'Book Reserved')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    const reserveDisplay = document.getElementById("active-reserve-display");
+    
+    if (notifData) {
+        const notifDate = new Date(notifData.created_at);
+        const now = new Date();
+        const diffInHours = (now - notifDate) / (1000 * 60 * 60);
+
+        if (diffInHours <= 48) {
+            reserveDisplay.innerHTML = `
+                <h4 style="color: #f0ad4e; margin-bottom: 5px;">Reserved Book Active</h4>
+                <p style="font-size: 14px;">${escapeHtml(notifData.message)}</p>
+            `;
+            document.getElementById("activity-warning").classList.remove("hidden");
+        } else {
+            reserveDisplay.innerHTML = `<p class="muted" style="color: #d9534f;">Previous reservation expired.</p>`;
         }
+    } else {
+        reserveDisplay.innerHTML = `<p class="muted">No active reservations.</p>`;
     }
 });
 </script>

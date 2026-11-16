@@ -6,41 +6,14 @@
 <title>Borrowing | Library Management System</title>
 <link rel="stylesheet" href="style.css">
 <style>
-    /* Autocomplete Dropdown Styles */
-    .autocomplete-container {
-        position: relative;
-        margin-bottom: 20px;
-    }
+    .autocomplete-container { position: relative; margin-bottom: 20px; }
     .autocomplete-items {
-        position: absolute;
-        border: 1px solid var(--border-color);
-        border-top: none;
-        z-index: 99;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background-color: #fff;
-        max-height: 200px;
-        overflow-y: auto;
-        border-radius: 0 0 var(--radius) var(--radius);
-        box-shadow: var(--shadow-md);
-        display: none;
+        position: absolute; border: 1px solid var(--border-color); border-top: none; z-index: 99;
+        top: 100%; left: 0; right: 0; background-color: #fff; max-height: 200px; overflow-y: auto;
+        border-radius: 0 0 var(--radius) var(--radius); box-shadow: var(--shadow-md); display: none;
     }
-    .autocomplete-items div {
-        padding: 10px 16px;
-        cursor: pointer;
-        background-color: #fff;
-        border-bottom: 1px solid #f1f1f1;
-        font-size: 14px;
-    }
-    .autocomplete-items div:hover {
-        background-color: var(--bg-gray);
-        color: var(--primary);
-    }
-    .autocomplete-active {
-        background-color: var(--primary) !important;
-        color: white !important;
-    }
+    .autocomplete-items div { padding: 10px 16px; cursor: pointer; background-color: #fff; border-bottom: 1px solid #f1f1f1; font-size: 14px; }
+    .autocomplete-items div:hover { background-color: var(--bg-gray); color: var(--primary); }
 </style>
 </head>
 <body data-protected>
@@ -61,16 +34,13 @@
             <h3>Book Details</h3>
             <p id="borrow-message" class="hidden"></p>
 
-            <!-- Autocomplete Search Field -->
             <label>Search Book (ID or Title)</label>
             <div class="autocomplete-container">
                 <input type="text" id="book-search" placeholder="Type Book ID or Title..." autocomplete="off">
                 <div id="autocomplete-list" class="autocomplete-items"></div>
             </div>
 
-            <!-- Hidden field to store the actual Book ID after selection -->
             <input type="hidden" id="borrow-bookid">
-
             <label>Book Title</label>
             <input type="text" id="borrow-title" placeholder="Filled in automatically" readonly>
 
@@ -85,7 +55,6 @@
         </div>
 
         <h3>Borrowed Book Information</h3>
-        
         <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="secondary filter-btn active" data-filter="all">All Time</button>
             <button class="secondary filter-btn" data-filter="today">Today</button>
@@ -95,14 +64,7 @@
         </div>
 
         <table>
-            <tr>
-                <th>Book ID</th>
-                <th>Book Title</th>
-                <th>Student Name</th>
-                <th>Borrow Date</th>
-                <th>Due Date</th>
-                <th>Status</th>
-            </tr>
+            <tr><th>Book ID</th><th>Book Title</th><th>Student Name</th><th>Borrow Date</th><th>Due Date</th><th>Status</th></tr>
             <tbody id="borrow-table-body"></tbody>
         </table>
 
@@ -135,123 +97,77 @@ let currentFilter = "all";
 
 async function fetchBorrowings() {
     if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY) return;
-
-    const { data, error } = await supabaseClient
-        .from('borrowings')
-        .select('*')
-        .order('borrow_date', { ascending: false });
-
+    const { data, error } = await supabaseClient.from('borrowings').select('*').order('borrow_date', { ascending: false });
     if (error) {
-        console.error("Error fetching borrowings:", error);
         borrowTableBody.innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${error.message}</td></tr>`;
         return;
     }
-
     allBorrowings = data;
     applyFilter();
 }
 
 async function fetchBooks() {
     if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY) return;
-
     const { data } = await supabaseClient.from('books').select('*');
     if (data) allBooks = data;
 }
 
 function applyFilter() {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
+    const today = new Date(); today.setHours(0,0,0,0);
     const filtered = allBorrowings.filter(rec => {
         if (currentFilter === "all") return true;
-        
-        const bDate = new Date(rec.borrow_date);
-        bDate.setHours(0,0,0,0);
-
+        const bDate = new Date(rec.borrow_date); bDate.setHours(0,0,0,0);
         if (currentFilter === "today") return bDate.getTime() === today.getTime();
         if (currentFilter === "week") {
-            const startOfWeek = new Date(today);
-            startOfWeek.setDate(today.getDate() - today.getDay());
+            const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - today.getDay());
             return bDate >= startOfWeek && bDate <= today;
         }
         if (currentFilter === "month") return bDate.getMonth() === today.getMonth() && bDate.getFullYear() === today.getFullYear();
         if (currentFilter === "year") return bDate.getFullYear() === today.getFullYear();
         return true;
     });
-
     renderBorrowTable(filtered);
 }
 
 function renderBorrowTable(records) {
     borrowTableBody.innerHTML = "";
-
     if (records.length === 0) {
         borrowTableBody.innerHTML = '<tr><td colspan="6" class="muted">No borrowing records found for this timeframe.</td></tr>';
         return;
     }
-
-    records.forEach(function (rec) {
+    records.forEach(rec => {
         const row = document.createElement("tr");
-        row.innerHTML =
-            "<td>" + escapeHtml(rec.book_id) + "</td>" +
-            "<td>" + escapeHtml(rec.book_title) + "</td>" +
-            "<td>" + escapeHtml(rec.student_name || rec.student_id) + "</td>" +
-            "<td>" + formatDate(rec.borrow_date) + "</td>" +
-            "<td>" + formatDate(rec.due_date) + "</td>" +
-            '<td><span class="status" style="' + (rec.status === 'Borrowed' ? 'background:#f8d7da; color:#721c24;' : '') + '">' + escapeHtml(rec.status) + "</span></td>";
+        row.innerHTML = "<td>" + escapeHtml(rec.book_id) + "</td><td>" + escapeHtml(rec.book_title) + "</td><td>" + escapeHtml(rec.student_name || rec.student_id) + "</td><td>" + formatDate(rec.borrow_date) + "</td><td>" + formatDate(rec.due_date) + "</td>" + '<td><span class="status" style="' + (rec.status === 'Borrowed' ? 'background:#f8d7da; color:#721c24;' : '') + '">' + escapeHtml(rec.status) + "</span></td>";
         borrowTableBody.appendChild(row);
     });
 }
 
-// --- AUTOCOMPLETE LOGIC ---
 searchInput.addEventListener("input", function() {
     const val = this.value.trim().toLowerCase();
     autocompleteList.innerHTML = "";
-    
-    if (!val) {
-        autocompleteList.style.display = "none";
-        bookIdInput.value = "";
-        titleInput.value = "";
-        return;
-    }
+    if (!val) { autocompleteList.style.display = "none"; bookIdInput.value = ""; titleInput.value = ""; return; }
 
-    // Filter books by ID or Title
-    const matches = allBooks.filter(book => 
-        book.id.toLowerCase().includes(val) || 
-        book.title.toLowerCase().includes(val)
-    );
-
-    if (matches.length === 0) {
-        autocompleteList.style.display = "none";
-        return;
-    }
+    const matches = allBooks.filter(book => book.id.toLowerCase().includes(val) || book.title.toLowerCase().includes(val));
+    if (matches.length === 0) { autocompleteList.style.display = "none"; return; }
 
     autocompleteList.style.display = "block";
-
     matches.forEach(book => {
         const item = document.createElement("div");
-        // Add a visual indicator if the book is already borrowed
         const statusText = book.available ? "" : " (Borrowed)";
         const statusColor = book.available ? "" : "color: #d9534f;";
-        
         item.innerHTML = `<strong>${book.id}</strong> - ${book.title} <span style="${statusColor}">${statusText}</span>`;
-        
         item.addEventListener("click", function() {
             searchInput.value = book.id + " - " + book.title;
             bookIdInput.value = book.id;
             titleInput.value = book.title;
             autocompleteList.style.display = "none";
         });
-        
         autocompleteList.appendChild(item);
     });
 });
 
-// Close autocomplete if clicking outside
 document.addEventListener("click", function(e) {
-    if (e.target !== searchInput) {
-        autocompleteList.style.display = "none";
-    }
+    if (e.target !== searchInput) autocompleteList.style.display = "none";
 });
 
 async function borrowBook() {
@@ -259,49 +175,33 @@ async function borrowBook() {
     const studentId = studentIdInput.value.trim();
     const today     = new Date().toISOString().split("T")[0];
 
-    if (!bookId || !studentId) {
-        showMessage(borrowMessage, "Please select a book and enter a Student ID.", "error");
-        return;
-    }
+    if (!bookId || !studentId) { showMessage(borrowMessage, "Please select a book and enter a Student ID.", "error"); return; }
+    if (!titleInput.value) { showMessage(borrowMessage, "Please select a valid book from the list.", "error"); return; }
 
-    if (!titleInput.value) {
-        showMessage(borrowMessage, "Please select a valid book from the list.", "error");
+    // NEW: 1-book limit check
+    const { data: existingBorrow } = await supabaseClient.from('borrowings').select('id').eq('student_id', studentId).eq('status', 'Borrowed').limit(1);
+    if (existingBorrow && existingBorrow.length > 0) {
+        showMessage(borrowMessage, "This student already has a book borrowed. They must return it first.", "error");
         return;
     }
 
     const alreadyOut = allBorrowings.some(r => r.book_id === bookId && r.status === "Borrowed");
-    if (alreadyOut) {
-        showMessage(borrowMessage, "That book is already borrowed.", "error");
-        return;
-    }
+    if (alreadyOut) { showMessage(borrowMessage, "That book is already borrowed.", "error"); return; }
 
     const user = getCurrentUser();
     const studentName = user && user.student_id === studentId ? user.full_name : studentId;
 
-    const newRecord = {
-        book_id: bookId,
-        book_title: titleInput.value,
-        student_id: studentId,
-        student_name: studentName,
-        borrow_date: today, 
-        due_date: addDays(today, 7),
-        status: "Borrowed"
-    };
-
+    const newRecord = { book_id: bookId, book_title: titleInput.value, student_id: studentId, student_name: studentName, borrow_date: today, due_date: addDays(today, 7), status: "Borrowed" };
     const { error } = await supabaseClient.from('borrowings').insert([newRecord]);
 
     if (error) {
         showMessage(borrowMessage, "Error borrowing book: " + error.message, "error");
     } else {
         await supabaseClient.from('books').update({ available: false }).eq('id', bookId);
-        
         showMessage(borrowMessage, "Book borrowed successfully. Due on " + formatDate(addDays(today, 7)) + ".", "success");
-        searchInput.value = "";
-        bookIdInput.value = "";
-        titleInput.value = "";
-        
+        searchInput.value = ""; bookIdInput.value = ""; titleInput.value = "";
         fetchBorrowings();
-        fetchBooks(); // Refresh book list to update availability status
+        fetchBooks();
     }
 }
 
@@ -309,35 +209,20 @@ async function returnBook() {
     const bookId    = bookIdInput.value.trim();
     const studentId = studentIdInput.value.trim();
 
-    if (!bookId || !studentId) {
-        showMessage(borrowMessage, "Please select a book and enter a Student ID to return.", "error");
-        return;
-    }
+    if (!bookId || !studentId) { showMessage(borrowMessage, "Please select a book and enter a Student ID to return.", "error"); return; }
 
     const record = allBorrowings.find(r => r.book_id === bookId && r.student_id === studentId && r.status === "Borrowed");
-
-    if (!record) {
-        showMessage(borrowMessage, "No active borrowing record found for that book and student.", "error");
-        return;
-    }
+    if (!record) { showMessage(borrowMessage, "No active borrowing record found for that book and student.", "error"); return; }
 
     const today = new Date().toISOString().split("T")[0];
-
-    const { error } = await supabaseClient
-        .from('borrowings')
-        .update({ return_date: today, status: "Returned" })
-        .eq('id', record.id);
+    const { error } = await supabaseClient.from('borrowings').update({ return_date: today, status: "Returned" }).eq('id', record.id);
 
     if (error) {
         showMessage(borrowMessage, "Error returning book: " + error.message, "error");
     } else {
         await supabaseClient.from('books').update({ available: true }).eq('id', bookId);
-
         showMessage(borrowMessage, "Book returned successfully.", "success");
-        searchInput.value = "";
-        bookIdInput.value = "";
-        titleInput.value = "";
-        
+        searchInput.value = ""; bookIdInput.value = ""; titleInput.value = "";
         fetchBorrowings();
         fetchBooks();
     }
@@ -345,9 +230,7 @@ async function returnBook() {
 
 document.addEventListener("DOMContentLoaded", function () {
     if (!borrowTableBody) return;
-
     borrowForm.style.display = "block";
-    
     const now = new Date();
     const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     dateInput.value = now.toLocaleDateString('en-US', options);
@@ -357,20 +240,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => {
-                b.classList.remove('active');
-                b.style.background = "";
-                b.style.color = "";
-            });
-            this.classList.add('active');
-            this.style.background = "var(--primary)";
-            this.style.color = "white";
-
+            document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('active'); b.style.background = ""; b.style.color = ""; });
+            this.classList.add('active'); this.style.background = "var(--primary)"; this.style.color = "white";
             currentFilter = this.dataset.filter;
             applyFilter();
         });
     });
-
     document.querySelector('.filter-btn[data-filter="all"]').style.background = "var(--primary)";
     document.querySelector('.filter-btn[data-filter="all"]').style.color = "white";
 
@@ -378,7 +253,7 @@ document.addEventListener("DOMContentLoaded", function () {
     btnReturn.addEventListener("click", returnBook);
 
     fetchBorrowings();
-    fetchBooks(); // Pre-load books for the autocomplete
+    fetchBooks();
 });
 </script>
 </body>
