@@ -69,26 +69,25 @@
                             <th>Time</th>
                             <th>Purpose</th>
                             <th>Status</th>
+                            <th>Actions</th> <!-- NEW COLUMN -->
                         </tr>
                     </thead>
                     <tbody id="librarian-appt-table">
-                        <tr><td colspan="5" class="muted">Loading appointments...</td></tr>
+                        <tr><td colspan="6" class="muted">Loading appointments...</td></tr>
                     </tbody>
                 </table>
 
-                <!-- NEW: Reserved Books Section -->
                 <h3>Reserved Books</h3>
                 <table>
                     <thead>
                         <tr>
-                            <th>Student Name</th>
+                            <th>Reserved Book ID</th>
                             <th>Student ID</th>
-                            <th>Reserved Book</th>
-                            <th>Status / Expiry</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody id="librarian-reserve-table">
-                        <tr><td colspan="4" class="muted">Loading reservations...</td></tr>
+                        <tr><td colspan="3" class="muted">Loading reservations...</td></tr>
                     </tbody>
                 </table>
 
@@ -125,6 +124,23 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script>
+// GLOBAL FUNCTION: Mark Appointment as Done
+window.completeAppointment = async function(apptId) {
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) return;
+
+    const { error } = await supabaseClient
+        .from('appointments')
+        .update({ status: 'Completed' })
+        .eq('id', apptId);
+
+    if (error) {
+        alert("Error updating appointment: " + error.message);
+    } else {
+        // Reload the dashboard to show the new status
+        window.location.reload();
+    }
+};
+
 document.addEventListener("DOMContentLoaded", async function() {
     if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) return;
 
@@ -172,53 +188,65 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (appointments) {
             document.getElementById("stat-appointments").textContent = appointments.length;
             apptTableBody.innerHTML = "";
+            
             if (appointments.length === 0) {
-                apptTableBody.innerHTML = '<tr><td colspan="5" class="muted">No upcoming appointments.</td></tr>';
+                apptTableBody.innerHTML = '<tr><td colspan="6" class="muted">No upcoming appointments.</td></tr>';
             } else {
                 appointments.forEach(appt => {
+                    // Determine button state based on current status
+                    let actionButton = "";
+                    let statusDisplay = escapeHtml(appt.status);
+
+                    if (appt.status === 'Pending') {
+                        statusDisplay = `<span class="status" style="background:#fff3cd; color:#856404;">Pending</span>`;
+                        actionButton = `<button class="secondary" style="padding: 6px 12px; font-size: 12px;" onclick="window.completeAppointment('${appt.id}')">Mark as Done</button>`;
+                    } else {
+                        statusDisplay = `<span class="status" style="background:#d4edda; color:#155724;">Completed</span>`;
+                        actionButton = `<span class="muted" style="font-size: 12px;">-</span>`;
+                    }
+
                     apptTableBody.innerHTML += `<tr>
                         <td>${escapeHtml(appt.student_name)}</td>
                         <td>${formatDate(appt.date)}</td>
                         <td>${escapeHtml(appt.time)}</td>
                         <td>${escapeHtml(appt.purpose)}</td>
-                        <td><span class="status">${escapeHtml(appt.status)}</span></td>
+                        <td>${statusDisplay}</td>
+                        <td>${actionButton}</td>
                     </tr>`;
                 });
             }
         }
 
-        // --- 4. RESERVED BOOKS DATA (NEW) ---
-        // We look at notifications with the title "Book Reserved"
+        // --- 4. RESERVED BOOKS DATA ---
         const { data: reservations } = await supabaseClient
-            .from('notifications')
-            .select('*')
-            .eq('title', 'Book Reserved')
-            .order('created_at', { ascending: false });
+            .from('notifications').select('*').eq('title', 'Book Reserved').order('created_at', { ascending: false });
 
         if (reservations) {
             reserveTableBody.innerHTML = "";
             if (reservations.length === 0) {
-                reserveTableBody.innerHTML = '<tr><td colspan="4" class="muted">No reserved books.</td></tr>';
+                reserveTableBody.innerHTML = '<tr><td colspan="3" class="muted">No reserved books.</td></tr>';
             } else {
                 reservations.forEach(res => {
-                    // Calculate if the reservation is expired (48 hours)
                     const resDate = new Date(res.created_at);
                     const now = new Date();
                     const diffInHours = (now - resDate) / (1000 * 60 * 60);
                     
                     let statusBadge = "";
                     if (diffInHours <= 48) {
-                        statusBadge = `<span style="color: green; font-weight: bold;">Active (Expires in ${Math.round(48 - diffInHours)} hrs)</span>`;
+                        statusBadge = `<span style="color: green; font-weight: bold;">Active</span>`;
                     } else {
                         statusBadge = `<span style="color: #d9534f; font-weight: bold;">Expired</span>`;
                     }
 
-                    // Extract the student name and book from the notification message
-                    // (This is a quick way to display it without changing the database)
+                    let bookId = "Unknown";
+                    if (res.message.includes("reserved book ")) {
+                        const parts = res.message.split("reserved book ");
+                        if (parts[1]) bookId = parts[1].split(".")[0];
+                    }
+
                     reserveTableBody.innerHTML += `<tr>
+                        <td><strong>${escapeHtml(bookId)}</strong></td>
                         <td>${escapeHtml(res.student_id)}</td>
-                        <td>${escapeHtml(res.student_id)}</td>
-                        <td style="font-size: 13px;">${escapeHtml(res.message)}</td>
                         <td>${statusBadge}</td>
                     </tr>`;
                 });
@@ -240,7 +268,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             await supabaseClient.from('queue_entries').update({ status: 'Serving' }).eq('id', nextUp.id);
         } else {
             await supabaseClient.from('queue_entries').delete().in('status', ['Serving', 'Completed']);
-            
             btnCallNext.textContent = "Call Next Student";
             btnCallNext.disabled = false;
             alert("Queue is empty! The queue has been reset to Q-001 for the next student.");
