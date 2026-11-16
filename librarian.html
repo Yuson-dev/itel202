@@ -38,35 +38,29 @@
                 <h3>Welcome, Librarian!</h3>
 
                 <div class="card-container">
-
                     <div class="card">
                         <h3>Appointments</h3>
                         <h2 id="stat-appointments">--</h2>
                         <p>Scheduled today</p>
                     </div>
-
                     <div class="card">
                         <h3>Queue</h3>
                         <h2 id="stat-queue">--</h2>
                         <p>Students waiting</p>
                     </div>
-
                     <div class="card">
                         <h3>Total Books</h3>
                         <h2 id="stat-total-books">--</h2>
                         <p>Registered books</p>
                     </div>
-
                     <div class="card">
                         <h3>Borrowed Books</h3>
                         <h2 id="stat-borrowed-books">--</h2>
                         <p>Currently borrowed</p>
                     </div>
-
                 </div>
 
                 <h3>Appointment Management</h3>
-
                 <table>
                     <thead>
                         <tr>
@@ -82,8 +76,23 @@
                     </tbody>
                 </table>
 
-                <h3>Queue Monitoring</h3>
+                <!-- NEW: Reserved Books Section -->
+                <h3>Reserved Books</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Student ID</th>
+                            <th>Reserved Book</th>
+                            <th>Status / Expiry</th>
+                        </tr>
+                    </thead>
+                    <tbody id="librarian-reserve-table">
+                        <tr><td colspan="4" class="muted">Loading reservations...</td></tr>
+                    </tbody>
+                </table>
 
+                <h3>Queue Monitoring</h3>
                 <div class="placeholder" style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <p style="font-size: 18px; margin-bottom: 5px;">Currently Serving: <strong id="admin-current-serving" style="color: var(--primary); font-size: 24px;">--</strong></p>
@@ -95,7 +104,6 @@
                 </div>
 
                 <h3>Book Inventory</h3>
-
                 <div class="placeholder">
                     <p>Total Books: <span id="inventory-total">--</span></p>
                     <p>Available Books: <span id="inventory-available">--</span></p>
@@ -124,8 +132,10 @@ document.addEventListener("DOMContentLoaded", async function() {
     const queueCountEl = document.getElementById("admin-queue-count");
     const btnCallNext = document.getElementById("btn-call-next");
     const apptTableBody = document.getElementById("librarian-appt-table");
+    const reserveTableBody = document.getElementById("librarian-reserve-table");
 
     async function updateDashboard() {
+        // --- 1. QUEUE DATA ---
         const { data: serving } = await supabaseClient
             .from('queue_entries').select('queue_number, student_name')
             .eq('status', 'Serving').order('queue_number', { ascending: true }).limit(1).maybeSingle();
@@ -142,9 +152,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         queueCountEl.textContent = (queueCount || 0) + " students waiting in line.";
         document.getElementById("stat-queue").textContent = queueCount || 0;
 
+        // --- 2. BOOK DATA ---
         const { count: totalBooks } = await supabaseClient
             .from('books').select('*', { count: 'exact', head: true });
-            
         const { count: borrowedBooks } = await supabaseClient
             .from('borrowings').select('*', { count: 'exact', head: true }).eq('status', 'Borrowed');
 
@@ -154,28 +164,62 @@ document.addEventListener("DOMContentLoaded", async function() {
         document.getElementById("inventory-borrowed").textContent = borrowedBooks || 0;
         document.getElementById("inventory-available").textContent = (totalBooks || 0) - (borrowedBooks || 0);
 
+        // --- 3. APPOINTMENTS DATA ---
         const today = new Date().toISOString().split("T")[0];
-        
         const { data: appointments } = await supabaseClient
-            .from('appointments')
-            .select('*')
-            .gte('date', today)
-            .order('date', { ascending: true });
+            .from('appointments').select('*').gte('date', today).order('date', { ascending: true });
 
         if (appointments) {
             document.getElementById("stat-appointments").textContent = appointments.length;
-            
             apptTableBody.innerHTML = "";
             if (appointments.length === 0) {
                 apptTableBody.innerHTML = '<tr><td colspan="5" class="muted">No upcoming appointments.</td></tr>';
             } else {
                 appointments.forEach(appt => {
                     apptTableBody.innerHTML += `<tr>
-                        <td>${escapeHtml(appt.student_name || appt.studentName || 'N/A')}</td>
+                        <td>${escapeHtml(appt.student_name)}</td>
                         <td>${formatDate(appt.date)}</td>
                         <td>${escapeHtml(appt.time)}</td>
                         <td>${escapeHtml(appt.purpose)}</td>
                         <td><span class="status">${escapeHtml(appt.status)}</span></td>
+                    </tr>`;
+                });
+            }
+        }
+
+        // --- 4. RESERVED BOOKS DATA (NEW) ---
+        // We look at notifications with the title "Book Reserved"
+        const { data: reservations } = await supabaseClient
+            .from('notifications')
+            .select('*')
+            .eq('title', 'Book Reserved')
+            .order('created_at', { ascending: false });
+
+        if (reservations) {
+            reserveTableBody.innerHTML = "";
+            if (reservations.length === 0) {
+                reserveTableBody.innerHTML = '<tr><td colspan="4" class="muted">No reserved books.</td></tr>';
+            } else {
+                reservations.forEach(res => {
+                    // Calculate if the reservation is expired (48 hours)
+                    const resDate = new Date(res.created_at);
+                    const now = new Date();
+                    const diffInHours = (now - resDate) / (1000 * 60 * 60);
+                    
+                    let statusBadge = "";
+                    if (diffInHours <= 48) {
+                        statusBadge = `<span style="color: green; font-weight: bold;">Active (Expires in ${Math.round(48 - diffInHours)} hrs)</span>`;
+                    } else {
+                        statusBadge = `<span style="color: #d9534f; font-weight: bold;">Expired</span>`;
+                    }
+
+                    // Extract the student name and book from the notification message
+                    // (This is a quick way to display it without changing the database)
+                    reserveTableBody.innerHTML += `<tr>
+                        <td>${escapeHtml(res.student_id)}</td>
+                        <td>${escapeHtml(res.student_id)}</td>
+                        <td style="font-size: 13px;">${escapeHtml(res.message)}</td>
+                        <td>${statusBadge}</td>
                     </tr>`;
                 });
             }
@@ -186,21 +230,22 @@ document.addEventListener("DOMContentLoaded", async function() {
         btnCallNext.textContent = "Processing...";
         btnCallNext.disabled = true;
 
-        // 1. Mark current serving as Completed
         await supabaseClient.from('queue_entries').update({ status: 'Completed' }).eq('status', 'Serving');
 
-        // 2. Check if anyone is waiting
         const { data: nextUp } = await supabaseClient
             .from('queue_entries').select('id')
             .eq('status', 'Waiting').order('queue_number', { ascending: true }).limit(1).maybeSingle();
 
         if (nextUp) {
-            // If someone is waiting, promote them
             await supabaseClient.from('queue_entries').update({ status: 'Serving' }).eq('id', nextUp.id);
         } else {
-            // 3. RESET LOGIC: If the line is empty, delete all records to reset to Q-001
             await supabaseClient.from('queue_entries').delete().in('status', ['Serving', 'Completed']);
+            
+            btnCallNext.textContent = "Call Next Student";
+            btnCallNext.disabled = false;
             alert("Queue is empty! The queue has been reset to Q-001 for the next student.");
+            updateDashboard();
+            return;
         }
 
         btnCallNext.textContent = "Call Next Student";
