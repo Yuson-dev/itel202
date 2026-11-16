@@ -61,8 +61,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script>
-/* ---------- REAL Queue page logic (Supabase) ---------- */
-
 async function loadQueueStatus() {
     const user = getCurrentUser();
     if (!user) return;
@@ -79,7 +77,7 @@ async function loadQueueStatus() {
         .eq('status', 'Serving')
         .order('queue_number', { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
 
     const currentServing = servingData ? servingData.queue_number : null;
 
@@ -88,10 +86,10 @@ async function loadQueueStatus() {
         .from('queue_entries')
         .select('*')
         .eq('student_id', user.student_id)
-        .eq('status', 'Waiting')
+        .in('status', ['Waiting', 'Serving'])
         .order('queue_number', { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
 
     const myNumberEl = document.getElementById("my-queue");
     const currentQueueEl = document.getElementById("current-queue");
@@ -103,7 +101,6 @@ async function loadQueueStatus() {
     currentQueueEl.textContent = currentServing ? "Q-" + String(currentServing).padStart(3, "0") : "--";
 
     if (!myEntry) {
-        // If they haven't joined the queue
         myNumberEl.textContent = "--";
         waitTimeEl.textContent = "--";
         statusEl.textContent = "Not in queue";
@@ -111,7 +108,6 @@ async function loadQueueStatus() {
         return;
     }
 
-    // Update their personal queue card
     myNumberEl.textContent = "Q-" + String(myEntry.queue_number).padStart(3, "0");
 
     // Calculate how many people are ahead
@@ -123,7 +119,7 @@ async function loadQueueStatus() {
 
     const peopleAhead = count || 0;
 
-    if (currentServing === myEntry.queue_number) {
+    if (myEntry.status === 'Serving' || currentServing === myEntry.queue_number) {
         statusEl.textContent = "It's your turn!";
         aheadEl.textContent = "Please proceed to the counter.";
         waitTimeEl.textContent = "Now!";
@@ -137,7 +133,6 @@ async function loadQueueStatus() {
 }
 
 document.getElementById("btn-refresh-queue").addEventListener("click", loadQueueStatus);
-
 document.addEventListener("DOMContentLoaded", loadQueueStatus);
 </script>
 </body>

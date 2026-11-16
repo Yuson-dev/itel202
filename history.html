@@ -20,25 +20,33 @@
 
         <h2>Borrowing History</h2>
 
+        <!-- Search Bar (Only visible to Librarians/Admins) -->
+        <div id="librarian-search-box" class="placeholder" style="display:none; margin-bottom: 20px;">
+            <h3>Search Student History</h3>
+            <label>Enter Student ID</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="search-student-id" placeholder="e.g. 2026-0001">
+                <button id="btn-search-student">Search</button>
+            </div>
+        </div>
+
         <h3>Student Information</h3>
 
         <div class="card-container">
-
             <div class="card">
                 <h3>Student Name</h3>
-                <p data-user-name>--</p>
+                <p id="hist-name">--</p>
             </div>
 
             <div class="card">
                 <h3>Student ID</h3>
-                <p data-user-id>--</p>
+                <p id="hist-id">--</p>
             </div>
 
             <div class="card">
                 <h3>Total Borrowed Books</h3>
                 <p id="hist-total">0 Books</p>
             </div>
-
         </div>
 
         <h3>Previous Borrowing Records</h3>
@@ -51,7 +59,9 @@
                 <th>Return Date</th>
                 <th>Status</th>
             </tr>
-            <tbody id="hist-table-body"></tbody>
+            <tbody id="hist-table-body">
+                <tr><td colspan="5" class="muted">Loading records...</td></tr>
+            </tbody>
         </table>
 
     </section>
@@ -65,43 +75,83 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script>
-/* ---------- History page logic ---------- */
-const HIST_KEY = "libraryBorrowedBooks";
-const histTableBody = document.getElementById("hist-table-body");
+async function loadHistory(studentId, studentName) {
+    const histTableBody = document.getElementById("hist-table-body");
+    histTableBody.innerHTML = '<tr><td colspan="5" class="muted">Loading records...</td></tr>';
 
-function renderHistory() {
-    const user = getCurrentUser();
-    let records = [];
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY) return;
 
-    try {
-        records = JSON.parse(localStorage.getItem(HIST_KEY)) || [];
-    } catch (err) {
-        records = [];
-    }
+    // Fetch records from Supabase for the specific student ID
+    const { data: records, error } = await supabaseClient
+        .from('borrowings')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('borrow_date', { ascending: false });
 
-    const mine = user ? records.filter(function (r) { return r.studentId === user.student_id; }) : [];
-
-    document.getElementById("hist-total").textContent = mine.length + " Books";
+    document.getElementById("hist-name").textContent = studentName;
+    document.getElementById("hist-id").textContent = studentId;
+    
     histTableBody.innerHTML = "";
 
-    if (mine.length === 0) {
-        histTableBody.innerHTML = '<tr><td colspan="5" class="muted">No borrowing records found for your account.</td></tr>';
+    if (error) {
+        histTableBody.innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
         return;
     }
 
-    mine.forEach(function (rec) {
+    document.getElementById("hist-total").textContent = records.length + " Books";
+
+    if (records.length === 0) {
+        histTableBody.innerHTML = '<tr><td colspan="5" class="muted">No borrowing records found for this student.</td></tr>';
+        return;
+    }
+
+    records.forEach(function (rec) {
         const row = document.createElement("tr");
         row.innerHTML =
-            "<td>" + escapeHtml(rec.bookId) + "</td>" +
-            "<td>" + escapeHtml(rec.title) + "</td>" +
-            "<td>" + formatDate(rec.borrowDate) + "</td>" +
-            "<td>" + (rec.returnDate ? formatDate(rec.returnDate) : "--") + "</td>" +
-            '<td><span class="status">' + escapeHtml(rec.status) + "</span></td>";
+            "<td>" + escapeHtml(rec.book_id) + "</td>" +
+            "<td>" + escapeHtml(rec.book_title) + "</td>" +
+            "<td>" + formatDate(rec.borrow_date) + "</td>" +
+            "<td>" + (rec.return_date ? formatDate(rec.return_date) : "--") + "</td>" +
+            '<td><span class="status" style="' + (rec.status === 'Borrowed' ? 'background:#f8d7da; color:#721c24;' : '') + '">' + escapeHtml(rec.status) + "</span></td>";
         histTableBody.appendChild(row);
     });
 }
 
-document.addEventListener("DOMContentLoaded", renderHistory);
+document.addEventListener("DOMContentLoaded", async function () {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    // 1. Check if the logged-in user is a Librarian or Admin
+    if (user.role === "librarian" || user.role === "admin") {
+        // Show the search box
+        document.getElementById("librarian-search-box").style.display = "block";
+        
+        // Clear the info until they search
+        document.getElementById("hist-name").textContent = "Search a student ID";
+        document.getElementById("hist-id").textContent = "--";
+        document.getElementById("hist-table-body").innerHTML = '<tr><td colspan="5" class="muted">Enter a Student ID above to view their history.</td></tr>';
+
+        // Handle the search button
+        document.getElementById("btn-search-student").addEventListener("click", async function() {
+            const searchId = document.getElementById("search-student-id").value.trim();
+            if (!searchId) return;
+
+            // Fetch the student's name from the users table
+            const { data: student } = await supabaseClient
+                .from('users')
+                .select('full_name')
+                .eq('student_id', searchId)
+                .maybeSingle();
+
+            const name = student ? student.full_name : "Unknown Student";
+            loadHistory(searchId, name);
+        });
+        
+    } else {
+        // 2. If it's a normal student, automatically load their own history
+        loadHistory(user.student_id, user.full_name || user.username);
+    }
+});
 </script>
 </body>
 </html>

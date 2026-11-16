@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile | Library Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-protected>
+
+<header>
+    <h2>Library Management System</h2>
+    <p>Online Appointment and Queue Management System</p>
+</header>
+
+<nav id="main-nav"></nav>
+
+<main>
+    <section class="page" id="profile">
+        
+        <h2>My Profile</h2>
+
+        <div class="sidebar-layout">
+            <div class="main-content" style="max-width: 600px; margin: 0 auto;">
+                <div class="placeholder" style="text-align: center; padding: 40px;">
+                    <div style="background: var(--primary); color: white; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px auto;">
+                        <span id="profile-initial">U</span>
+                    </div>
+                    
+                    <h2 id="profile-fullname" style="margin-bottom: 5px;">Loading...</h2>
+                    <p class="muted" id="profile-role" style="text-transform: capitalize; margin-bottom: 20px;">Role</p>
+
+                    <div style="text-align: left; margin-top: 30px;">
+                        <label>Username</label>
+                        <input type="text" id="profile-username" readonly style="background-color: #f9f9f9;">
+
+                        <label>Student / Employee ID</label>
+                        <input type="text" id="profile-studentid" readonly style="background-color: #f9f9f9;">
+                        
+                        <label>Account Status</label>
+                        <input type="text" id="profile-status" readonly style="background-color: #f9f9f9; color: green; font-weight: bold;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</main>
+
+<footer>
+    <p>Library Appointment and Queue Management System</p>
+    <p>© 2026 Library Management System</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    document.getElementById("profile-fullname").textContent = user.full_name || user.username;
+    document.getElementById("profile-username").value = user.username;
+    document.getElementById("profile-studentid").value = user.student_id || "N/A";
+    document.getElementById("profile-role").textContent = user.role;
+    
+    const initial = (user.full_name || user.username).charAt(0).toUpperCase();
+    document.getElementById("profile-initial").textContent = initial;
+
+    if (typeof SUPABASE_READY !== 'undefined' && SUPABASE_READY && supabaseClient) {
+        const { data } = await supabaseClient
+            .from('users')
+            .select('status')
+            .eq('username', user.username)
+            .maybeSingle();
+
+        if (data) {
+            document.getElementById("profile-status").value = data.status || "Active";
+        }
+    }
+});
+</script>
+</body>
+</html>

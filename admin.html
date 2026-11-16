@@ -51,11 +51,7 @@
                     </div>
                 </div>
 
-                <h3 id="users">User Management</h3>
-
-                <div style="margin-bottom: 15px;">
-                    <button id="btn-add-user">Add New User</button>
-                </div>
+                <h3 id="users">Active User Management</h3>
 
                 <table>
                     <thead>
@@ -70,6 +66,49 @@
                     </thead>
                     <tbody id="admin-user-table-body">
                         <tr><td colspan="6" class="muted">Loading users...</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="placeholder" style="margin-top: 20px;">
+                    <h3>Add New User</h3>
+                    <p id="add-user-message" class="hidden"></p>
+                    
+                    <label>Full Name</label>
+                    <input type="text" id="new-fullname" placeholder="Enter full name">
+                    
+                    <label>Student ID</label>
+                    <input type="text" id="new-studentid" placeholder="Enter student ID">
+                    
+                    <label>Username</label>
+                    <input type="text" id="new-username" placeholder="Enter username">
+                    
+                    <label>Password</label>
+                    <input type="password" id="new-password" placeholder="Enter password (min 6 chars)">
+                    
+                    <label>Role</label>
+                    <select id="new-role">
+                        <option value="student">Student</option>
+                        <option value="librarian">Librarian</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    
+                    <button id="btn-create-user">Create User</button>
+                </div>
+
+                <h3 id="archived-users">Archived Users</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="archived-table-body">
+                        <tr><td colspan="5" class="muted">No archived users.</td></tr>
                     </tbody>
                 </table>
 
@@ -123,64 +162,89 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (!user || user.role !== 'admin') return;
 
     const tbody = document.getElementById("admin-user-table-body");
+    const archivedTbody = document.getElementById("archived-table-body");
     if (!tbody) return;
 
     const settingsMessage = document.getElementById("settings-message");
     const annMessage = document.getElementById("announcement-message");
+    const addUserMessage = document.getElementById("add-user-message");
 
     async function loadUsers() {
         const { data: users, error } = await supabaseClient.from('users').select('*').order('role', { ascending: true });
 
         if (!error && users) {
-            document.getElementById("stat-total-users").textContent = users.length;
-            document.getElementById("stat-librarians").textContent = users.filter(u => u.role === "librarian").length;
-            document.getElementById("stat-admins").textContent = users.filter(u => u.role === "admin").length;
+            // Filter users into active and archived
+            const activeUsers = users.filter(u => u.status !== 'Archived');
+            const archivedUsers = users.filter(u => u.status === 'Archived');
 
+            // Update Stats (only count active users)
+            document.getElementById("stat-total-users").textContent = activeUsers.length;
+            document.getElementById("stat-librarians").textContent = activeUsers.filter(u => u.role === "librarian").length;
+            document.getElementById("stat-admins").textContent = activeUsers.filter(u => u.role === "admin").length;
+
+            // Render Active Users
             tbody.innerHTML = "";
-
-            users.forEach(userRow => {
+            activeUsers.forEach(userRow => {
                 let roleColor = "black";
                 if (userRow.role === "admin") roleColor = "#d9534f";
                 if (userRow.role === "librarian") roleColor = "#f0ad4e";
+
+                let statusColor = userRow.status === "Inactive" ? "#d9534f" : "green";
+                let actionBtn = userRow.status === "Inactive" 
+                    ? `<button class="secondary" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;" onclick="window.setUserStatus('${userRow.username}', 'Active')">Activate</button>`
+                    : `<button class="secondary" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;" onclick="window.setUserStatus('${userRow.username}', 'Inactive')">Deactivate</button>`;
+
+                // Don't let the admin archive themselves
+                if (userRow.username === user.username) {
+                    actionBtn = `<span class="muted">(You)</span>`;
+                } else {
+                    actionBtn += `<button class="secondary" style="padding: 6px 12px; font-size: 12px;" onclick="window.setUserStatus('${userRow.username}', 'Archived')">Archive</button>`;
+                }
 
                 tbody.innerHTML += `<tr>
                     <td>${userRow.student_id || 'N/A'}</td>
                     <td>${escapeHtml(userRow.full_name || 'N/A')}</td>
                     <td>${escapeHtml(userRow.username)}</td>
                     <td style="text-transform: capitalize; color: ${roleColor}; font-weight: bold;">${userRow.role || 'student'}</td>
-                    <td><span style="color: green; font-weight: bold;">Active</span></td>
-                    <td><button class="secondary" style="padding: 6px 12px; font-size: 12px;" onclick="window.deleteUser('${userRow.username}')">Delete</button></td>
+                    <td><span style="color: ${statusColor}; font-weight: bold;">${userRow.status || 'Active'}</span></td>
+                    <td>${actionBtn}</td>
                 </tr>`;
             });
+
+            // Render Archived Users
+            archivedTbody.innerHTML = "";
+            if (archivedUsers.length === 0) {
+                archivedTbody.innerHTML = '<tr><td colspan="5" class="muted">No archived users.</td></tr>';
+            } else {
+                archivedUsers.forEach(userRow => {
+                    archivedTbody.innerHTML += `<tr>
+                        <td>${userRow.student_id || 'N/A'}</td>
+                        <td>${escapeHtml(userRow.full_name || 'N/A')}</td>
+                        <td>${escapeHtml(userRow.username)}</td>
+                        <td style="text-transform: capitalize;">${userRow.role || 'student'}</td>
+                        <td>
+                            <button class="secondary" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;" onclick="window.setUserStatus('${userRow.username}', 'Active')">Restore</button>
+                            <button class="secondary" style="padding: 6px 12px; font-size: 12px; color: red; border-color: red;" onclick="window.deleteUser('${userRow.username}')">Delete Permanently</button>
+                        </td>
+                    </tr>`;
+                });
+            }
         }
     }
 
-    document.getElementById("btn-add-user").addEventListener("click", async function() {
-        const username = prompt("Enter new username:");
-        if (!username) return;
-        const password = prompt("Enter password (min 6 chars):");
-        if (!password) return;
-        const fullName = prompt("Enter full name:");
-        if (!fullName) return;
-        const studentId = prompt("Enter Student ID:");
-        if (!studentId) return;
-        const role = prompt("Enter role (student, librarian, admin):", "student");
-
-        const { error } = await supabaseClient.from('users').insert([{
-            username, password, full_name: fullName, student_id: studentId, role: role || "student"
-        }]);
-
+    // Change Status (Active, Inactive, Archived)
+    window.setUserStatus = async function(username, newStatus) {
+        const { error } = await supabaseClient.from('users').update({ status: newStatus }).eq('username', username);
         if (error) {
-            alert("Error adding user: " + error.message);
+            alert("Error updating status: " + error.message);
         } else {
-            alert("User added successfully!");
             loadUsers();
         }
-    });
+    };
 
-    // Attach to the window object so the inline HTML button can find it
+    // Permanent Delete
     window.deleteUser = async function(username) {
-        if (!confirm("Are you sure you want to delete " + username + "?")) return;
+        if (!confirm("Are you sure you want to PERMANENTLY delete " + username + "? This cannot be undone.")) return;
         
         const { error } = await supabaseClient.from('users').delete().eq('username', username);
         
@@ -191,11 +255,43 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     };
 
+    // Create User
+    document.getElementById("btn-create-user").addEventListener("click", async function() {
+        const fullName = document.getElementById("new-fullname").value.trim();
+        const studentId = document.getElementById("new-studentid").value.trim();
+        const username = document.getElementById("new-username").value.trim();
+        const password = document.getElementById("new-password").value;
+        const role = document.getElementById("new-role").value;
+
+        if (!fullName || !studentId || !username || !password) {
+            addUserMessage.textContent = "Please fill out all fields.";
+            addUserMessage.className = "message error";
+            return;
+        }
+
+        const { error } = await supabaseClient.from('users').insert([{
+            full_name: fullName, student_id: studentId, username: username, password: password, role: role, status: 'Active'
+        }]);
+
+        if (error) {
+            addUserMessage.textContent = "Error: " + error.message;
+            addUserMessage.className = "message error";
+        } else {
+            addUserMessage.textContent = "User created successfully!";
+            addUserMessage.className = "message success";
+            document.getElementById("new-fullname").value = "";
+            document.getElementById("new-studentid").value = "";
+            document.getElementById("new-username").value = "";
+            document.getElementById("new-password").value = "";
+            document.getElementById("new-role").value = "student";
+            loadUsers();
+        }
+    });
+
+    // Settings and Announcements (unchanged)
     const { data: settingsData } = await supabaseClient.from('settings').select('*');
     const settings = {};
-    if (settingsData) {
-        settingsData.forEach(row => { settings[row.key] = row.value; });
-    }
+    if (settingsData) { settingsData.forEach(row => { settings[row.key] = row.value; }); }
 
     document.getElementById("setting-hours").value = settings.operating_hours || "";
     document.getElementById("setting-capacity").value = settings.max_capacity || "";

@@ -33,8 +33,9 @@
             <label>Student ID</label>
             <input type="text" id="borrow-studentid" placeholder="Enter student ID (needed to borrow)">
 
-            <label>Transaction Date</label>
-            <input type="date" id="borrow-date">
+            <label>Transaction Date & Time</label>
+            <!-- Added readonly and background color to make it look disabled -->
+            <input type="text" id="borrow-date" readonly style="background-color: #e9ecef; cursor: not-allowed;">
 
             <button id="btn-borrow">Borrow Book</button>
             <button class="secondary" id="btn-return">Return Book</button>
@@ -162,7 +163,7 @@ async function lookupBook() {
         return;
     }
 
-    const { data: book, error } = await supabaseClient
+    const { data: book } = await supabaseClient
         .from('books')
         .select('*')
         .eq('id', id)
@@ -180,7 +181,9 @@ async function lookupBook() {
 async function borrowBook() {
     const bookId    = bookIdInput.value.trim().toUpperCase();
     const studentId = studentIdInput.value.trim();
-    const date      = dateInput.value || todayISO();
+    
+    // Use the actual current date for the database
+    const today = new Date().toISOString().split("T")[0];
 
     if (!bookId || !studentId) {
         showMessage(borrowMessage, "Book ID and Student ID are required.", "error");
@@ -206,8 +209,8 @@ async function borrowBook() {
         book_title: titleInput.value,
         student_id: studentId,
         student_name: studentName,
-        borrow_date: date,
-        due_date: addDays(date, 7),
+        borrow_date: today, 
+        due_date: addDays(today, 7),
         status: "Borrowed"
     };
 
@@ -218,7 +221,7 @@ async function borrowBook() {
     } else {
         await supabaseClient.from('books').update({ available: false }).eq('id', bookId);
         
-        showMessage(borrowMessage, "Book borrowed successfully. Due on " + formatDate(addDays(date, 7)) + ".", "success");
+        showMessage(borrowMessage, "Book borrowed successfully. Due on " + formatDate(addDays(today, 7)) + ".", "success");
         bookIdInput.value = "";
         titleInput.value = "";
         fetchBorrowings();
@@ -241,9 +244,11 @@ async function returnBook() {
         return;
     }
 
+    const today = new Date().toISOString().split("T")[0];
+
     const { error } = await supabaseClient
         .from('borrowings')
-        .update({ return_date: todayISO(), status: "Returned" })
+        .update({ return_date: today, status: "Returned" })
         .eq('id', record.id);
 
     if (error) {
@@ -262,7 +267,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!borrowTableBody) return;
 
     borrowForm.style.display = "block";
-    dateInput.value = todayISO();
+    
+    // Set the date input to show the current full date and time
+    const now = new Date();
+    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    dateInput.value = now.toLocaleDateString('en-US', options);
 
     const user = getCurrentUser();
     if (user && user.student_id) studentIdInput.value = user.student_id;

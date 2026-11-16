@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* GENERAL SETTINGS */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -9,13 +8,13 @@
 }
 
 body {
-    background-color: #f4f7f6; /* Very light green-gray */
+    background-color: #f4f7f6;
     color: #333;
     line-height: 1.6;
 }
 
 :root {
-    --primary: #285b49;      /* Your original green */
+    --primary: #285b49;
     --primary-light: #39785e; 
     --bg-light: #ffffff;
     --bg-gray: #f4f7f6;
@@ -28,7 +27,6 @@ body {
     --radius: 8px;
 }
 
-/* HEADER */
 header {
     background: var(--primary);
     color: white;
@@ -45,10 +43,9 @@ header h2 {
 
 header p {
     font-size: 14px;
-    color: #e8f0eb; /* Light green tint for subtitle */
+    color: #e8f0eb;
 }
 
-/* NAVIGATION BAR */
 nav {
     background: var(--bg-light);
     padding: 12px 20px;
@@ -86,14 +83,13 @@ nav a.active {
 
 nav a.logout-link {
     color: var(--danger);
-    margin-left: auto; /* Pushes logout to the far right */
+    margin-left: auto;
 }
 
 nav a.logout-link:hover {
     background-color: #fdeaea;
 }
 
-/* PAGE CONTAINER */
 .page {
     background: transparent;
     max-width: 1200px;
@@ -118,7 +114,6 @@ nav a.logout-link:hover {
     border-bottom: 2px solid var(--border-color);
 }
 
-/* INPUT FIELDS */
 input, select, textarea {
     width: 100%;
     padding: 12px 16px;
@@ -133,7 +128,7 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(40, 91, 73, 0.15); /* Green glow */
+    box-shadow: 0 0 0 3px rgba(40, 91, 73, 0.15);
 }
 
 label {
@@ -144,7 +139,6 @@ label {
     margin-bottom: -4px;
 }
 
-/* BUTTONS */
 button {
     background: var(--primary);
     color: white;
@@ -181,7 +175,6 @@ button.secondary:hover {
     color: var(--primary-light);
 }
 
-/* TABLES */
 table {
     width: 100%;
     border-collapse: separate;
@@ -201,7 +194,7 @@ th, td {
 }
 
 th {
-    background-color: #e8f0eb; /* Very light green header */
+    background-color: #e8f0eb;
     color: var(--primary);
     font-weight: 600;
     font-size: 13px;
@@ -217,7 +210,6 @@ tr:hover td {
     background-color: #f9fbfa;
 }
 
-/* DASHBOARD CARDS */
 .card-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -260,7 +252,6 @@ tr:hover td {
     font-size: 14px;
 }
 
-/* PLACEHOLDERS */
 .placeholder {
     background: var(--bg-light);
     padding: 24px;
@@ -270,7 +261,6 @@ tr:hover td {
     box-shadow: var(--shadow-sm);
 }
 
-/* STATUS */
 .status {
     color: var(--primary);
     font-weight: 600;
@@ -280,7 +270,6 @@ tr:hover td {
     font-size: 13px;
 }
 
-/* LOGIN PAGE */
 .login-container {
     max-width: 420px;
     margin: 60px auto;
@@ -305,7 +294,6 @@ tr:hover td {
     font-size: 16px;
 }
 
-/* CALENDAR */
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -346,7 +334,6 @@ tr:hover td {
     font-weight: bold;
 }
 
-/* SIDEBAR LAYOUT */
 .sidebar-layout {
     display: flex;
     gap: 24px;
@@ -365,7 +352,6 @@ tr:hover td {
     top: 80px;
 }
 
-/* Changed sidebar header text to match the clean white theme */
 .sidebar h3 {
     color: var(--primary) !important; 
     font-size: 14px;
@@ -398,7 +384,6 @@ tr:hover td {
     min-width: 0;
 }
 
-/* FOOTER */
 footer {
     text-align: center;
     padding: 30px;
@@ -408,7 +393,6 @@ footer {
     border-top: 1px solid var(--border-color);
 }
 
-/* UTILITIES */
 .hidden {
     display: none !important;
 }
@@ -438,36 +422,90 @@ footer {
     border: 1px solid #f5c6cb;
 }
 
-/* RESPONSIVE DESIGN */
+/* --- NAV ICONS & DROPDOWN --- */
+.nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 50%;
+    color: var(--text-main);
+    transition: background 0.2s;
+    position: relative;
+    margin: 0 4px;
+}
+.nav-icon:hover {
+    background: var(--bg-gray);
+}
+.nav-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+.nav-icon.active {
+    color: var(--primary);
+    background: #e8f0eb;
+}
+.nav-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #d9534f;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 10px;
+}
+
+.profile-dropdown {
+    position: relative;
+    display: inline-block;
+    margin-left: 10px;
+}
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+    border-radius: var(--radius);
+    z-index: 1000;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+.dropdown-content a {
+    color: var(--text-main);
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+}
+.dropdown-content a:hover {
+    background-color: var(--bg-gray);
+    color: var(--primary);
+}
+.dropdown-content a.logout-link {
+    color: var(--danger);
+    border-bottom: none;
+}
+.dropdown-content a.logout-link:hover {
+    background-color: #fdeaea;
+}
+.show-dropdown {
+    display: block !important;
+}
+
 @media (max-width: 768px) {
-    header {
-        padding: 20px;
-    }
-    .sidebar-layout {
-        flex-direction: column;
-    }
-    .sidebar {
-        width: 100%;
-        position: static;
-    }
-    .page {
-        margin: 15px auto;
-        padding: 0 15px;
-    }
-    table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-    .card-container {
-        grid-template-columns: 1fr;
-    }
-    nav {
-        gap: 4px;
-        padding: 10px;
-    }
-    nav a {
-        padding: 6px 10px;
-        font-size: 13px;
-    }
+    header { padding: 20px; }
+    .sidebar-layout { flex-direction: column; }
+    .sidebar { width: 100%; position: static; }
+    .page { margin: 15px auto; padding: 0 15px; }
+    table { display: block; overflow-x: auto; white-space: nowrap; }
+    .card-container { grid-template-columns: 1fr; }
+    nav { gap: 4px; padding: 10px; }
 }
