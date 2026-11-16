@@ -69,7 +69,7 @@
                             <th>Time</th>
                             <th>Purpose</th>
                             <th>Status</th>
-                            <th>Actions</th> <!-- NEW COLUMN -->
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="librarian-appt-table">
@@ -136,7 +136,6 @@ window.completeAppointment = async function(apptId) {
     if (error) {
         alert("Error updating appointment: " + error.message);
     } else {
-        // Reload the dashboard to show the new status
         window.location.reload();
     }
 };
@@ -193,7 +192,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                 apptTableBody.innerHTML = '<tr><td colspan="6" class="muted">No upcoming appointments.</td></tr>';
             } else {
                 appointments.forEach(appt => {
-                    // Determine button state based on current status
                     let actionButton = "";
                     let statusDisplay = escapeHtml(appt.status);
 
@@ -218,15 +216,31 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
 
         // --- 4. RESERVED BOOKS DATA ---
+        const { data: activeBorrows } = await supabaseClient
+            .from('borrowings')
+            .select('student_id, book_id')
+            .eq('status', 'Borrowed');
+
         const { data: reservations } = await supabaseClient
             .from('notifications').select('*').eq('title', 'Book Reserved').order('created_at', { ascending: false });
 
         if (reservations) {
             reserveTableBody.innerHTML = "";
-            if (reservations.length === 0) {
-                reserveTableBody.innerHTML = '<tr><td colspan="3" class="muted">No reserved books.</td></tr>';
+            
+            const activeReservations = reservations.filter(res => {
+                let bookId = "Unknown";
+                if (res.message.includes("reserved book ")) {
+                    const parts = res.message.split("reserved book ");
+                    if (parts[1]) bookId = parts[1].split(".")[0];
+                }
+                const isAlreadyBorrowed = activeBorrows.some(b => b.student_id === res.student_id && b.book_id === bookId);
+                return !isAlreadyBorrowed;
+            });
+
+            if (activeReservations.length === 0) {
+                reserveTableBody.innerHTML = '<tr><td colspan="3" class="muted">No active reserved books.</td></tr>';
             } else {
-                reservations.forEach(res => {
+                activeReservations.forEach(res => {
                     const resDate = new Date(res.created_at);
                     const now = new Date();
                     const diffInHours = (now - resDate) / (1000 * 60 * 60);
