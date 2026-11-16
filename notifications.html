@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Profile | Library Management System</title>
+<title>Notifications | Library Management System</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body data-protected>
@@ -16,32 +16,13 @@
 <nav id="main-nav"></nav>
 
 <main>
-    <section class="page" id="profile">
-        
-        <h2>My Profile</h2>
+    <section class="page" id="notifications">
 
-        <div class="sidebar-layout">
-            <div class="main-content" style="max-width: 600px; margin: 0 auto;">
-                <div class="placeholder" style="text-align: center; padding: 40px;">
-                    <div style="background: var(--primary); color: white; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px auto;">
-                        <span id="profile-initial">U</span>
-                    </div>
-                    
-                    <h2 id="profile-fullname" style="margin-bottom: 5px;">Loading...</h2>
-                    <p class="muted" id="profile-role" style="text-transform: capitalize; margin-bottom: 20px;">Role</p>
+        <h2>Notifications and Reminders</h2>
+        <h3>Your Notification Center</h3>
 
-                    <div style="text-align: left; margin-top: 30px;">
-                        <label>Username</label>
-                        <input type="text" id="profile-username" readonly style="background-color: #f9f9f9;">
-
-                        <label>Student / Employee ID</label>
-                        <input type="text" id="profile-studentid" readonly style="background-color: #f9f9f9;">
-                        
-                        <label>Account Status</label>
-                        <input type="text" id="profile-status" readonly style="background-color: #f9f9f9; color: green; font-weight: bold;">
-                    </div>
-                </div>
-            </div>
+        <div id="notification-list">
+            <p class="muted">Loading notifications...</p>
         </div>
 
     </section>
@@ -57,27 +38,57 @@
 <script>
 document.addEventListener("DOMContentLoaded", async function () {
     const user = getCurrentUser();
+    const listContainer = document.getElementById("notification-list");
+
     if (!user) return;
 
-    document.getElementById("profile-fullname").textContent = user.full_name || user.username;
-    document.getElementById("profile-username").value = user.username;
-    document.getElementById("profile-studentid").value = user.student_id || "N/A";
-    document.getElementById("profile-role").textContent = user.role;
-    
-    const initial = (user.full_name || user.username).charAt(0).toUpperCase();
-    document.getElementById("profile-initial").textContent = initial;
-
-    if (typeof SUPABASE_READY !== 'undefined' && SUPABASE_READY && supabaseClient) {
-        const { data } = await supabaseClient
-            .from('users')
-            .select('status')
-            .eq('username', user.username)
-            .maybeSingle();
-
-        if (data) {
-            document.getElementById("profile-status").value = data.status || "Active";
-        }
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) {
+        listContainer.innerHTML = '<p style="color:red;">Database not connected.</p>';
+        return;
     }
+
+    // Fetch notifications for this student
+    const { data: notifications, error } = await supabaseClient
+        .from('notifications')
+        .select('*')
+        .eq('student_id', user.student_id)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        listContainer.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+        return;
+    }
+
+    if (notifications.length === 0) {
+        listContainer.innerHTML = '<div class="placeholder"><p>You have no new notifications.</p></div>';
+        return;
+    }
+
+    listContainer.innerHTML = "";
+
+    notifications.forEach(function (notif) {
+        const div = document.createElement("div");
+        div.className = "placeholder";
+        
+        const dateStr = new Date(notif.created_at).toLocaleDateString("en-US", { 
+            month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" 
+        });
+
+        div.innerHTML = `
+            <h3>${escapeHtml(notif.title)}</h3>
+            <p>${escapeHtml(notif.message)}</p>
+            <small class="muted">${dateStr}</small>
+        `;
+        listContainer.appendChild(div);
+    });
+
+    // Mark all notifications as read so the red badge goes away
+    await supabaseClient
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('student_id', user.student_id)
+        .eq('is_read', false);
+
 });
 </script>
 </body>
