@@ -130,8 +130,10 @@ function renderNav() {
         const a = document.createElement("a");
         a.href = href;
         a.className = "nav-icon " + (href === current ? "active" : "");
-        a.title = label;
-        a.innerHTML = icons[iconName];
+        a.title = label; 
+        
+        // Wrap the label in a span so it can slide out
+        a.innerHTML = `${icons[iconName]}<span class="nav-text">${label}</span>`;
         return a;
     };
 
@@ -157,6 +159,7 @@ function renderNav() {
     notifLink.innerHTML += `<span class="nav-badge" id="nav-notif-badge" style="display:none;">0</span>`;
     nav.appendChild(notifLink);
 
+    // Profile Dropdown
     const profileDiv = document.createElement("div");
     profileDiv.className = "profile-dropdown";
     profileDiv.innerHTML = `
