@@ -5,6 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Borrowing | Library Management System</title>
 <link rel="stylesheet" href="style.css">
+<style>
+    /* Autocomplete Dropdown Styles */
+    .autocomplete-container {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .autocomplete-items {
+        position: absolute;
+        border: 1px solid var(--border-color);
+        border-top: none;
+        z-index: 99;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: #fff;
+        max-height: 200px;
+        overflow-y: auto;
+        border-radius: 0 0 var(--radius) var(--radius);
+        box-shadow: var(--shadow-md);
+        display: none;
+    }
+    .autocomplete-items div {
+        padding: 10px 16px;
+        cursor: pointer;
+        background-color: #fff;
+        border-bottom: 1px solid #f1f1f1;
+        font-size: 14px;
+    }
+    .autocomplete-items div:hover {
+        background-color: var(--bg-gray);
+        color: var(--primary);
+    }
+    .autocomplete-active {
+        background-color: var(--primary) !important;
+        color: white !important;
+    }
+</style>
 </head>
 <body data-protected>
 
@@ -24,8 +61,15 @@
             <h3>Book Details</h3>
             <p id="borrow-message" class="hidden"></p>
 
-            <label>Book ID</label>
-            <input type="text" id="borrow-bookid" placeholder="Enter book ID (e.g. B001)">
+            <!-- Autocomplete Search Field -->
+            <label>Search Book (ID or Title)</label>
+            <div class="autocomplete-container">
+                <input type="text" id="book-search" placeholder="Type Book ID or Title..." autocomplete="off">
+                <div id="autocomplete-list" class="autocomplete-items"></div>
+            </div>
+
+            <!-- Hidden field to store the actual Book ID after selection -->
+            <input type="hidden" id="borrow-bookid">
 
             <label>Book Title</label>
             <input type="text" id="borrow-title" placeholder="Filled in automatically" readonly>
@@ -34,7 +78,6 @@
             <input type="text" id="borrow-studentid" placeholder="Enter student ID (needed to borrow)">
 
             <label>Transaction Date & Time</label>
-            <!-- Added readonly and background color to make it look disabled -->
             <input type="text" id="borrow-date" readonly style="background-color: #e9ecef; cursor: not-allowed;">
 
             <button id="btn-borrow">Borrow Book</button>
@@ -77,14 +120,17 @@
 const borrowTableBody = document.getElementById("borrow-table-body");
 const borrowForm      = document.getElementById("borrow-form");
 const borrowMessage   = document.getElementById("borrow-message");
+const searchInput     = document.getElementById("book-search");
 const bookIdInput     = document.getElementById("borrow-bookid");
 const titleInput      = document.getElementById("borrow-title");
 const studentIdInput  = document.getElementById("borrow-studentid");
 const dateInput       = document.getElementById("borrow-date");
 const btnBorrow       = document.getElementById("btn-borrow");
 const btnReturn       = document.getElementById("btn-return");
+const autocompleteList = document.getElementById("autocomplete-list");
 
 let allBorrowings = []; 
+let allBooks = [];
 let currentFilter = "all"; 
 
 async function fetchBorrowings() {
@@ -105,6 +151,13 @@ async function fetchBorrowings() {
     applyFilter();
 }
 
+async function fetchBooks() {
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY) return;
+
+    const { data } = await supabaseClient.from('books').select('*');
+    if (data) allBooks = data;
+}
+
 function applyFilter() {
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -115,20 +168,14 @@ function applyFilter() {
         const bDate = new Date(rec.borrow_date);
         bDate.setHours(0,0,0,0);
 
-        if (currentFilter === "today") {
-            return bDate.getTime() === today.getTime();
-        }
+        if (currentFilter === "today") return bDate.getTime() === today.getTime();
         if (currentFilter === "week") {
             const startOfWeek = new Date(today);
             startOfWeek.setDate(today.getDate() - today.getDay());
             return bDate >= startOfWeek && bDate <= today;
         }
-        if (currentFilter === "month") {
-            return bDate.getMonth() === today.getMonth() && bDate.getFullYear() === today.getFullYear();
-        }
-        if (currentFilter === "year") {
-            return bDate.getFullYear() === today.getFullYear();
-        }
+        if (currentFilter === "month") return bDate.getMonth() === today.getMonth() && bDate.getFullYear() === today.getFullYear();
+        if (currentFilter === "year") return bDate.getFullYear() === today.getFullYear();
         return true;
     });
 
@@ -156,42 +203,69 @@ function renderBorrowTable(records) {
     });
 }
 
-async function lookupBook() {
-    const id = bookIdInput.value.trim().toUpperCase();
-    if (!id) {
+// --- AUTOCOMPLETE LOGIC ---
+searchInput.addEventListener("input", function() {
+    const val = this.value.trim().toLowerCase();
+    autocompleteList.innerHTML = "";
+    
+    if (!val) {
+        autocompleteList.style.display = "none";
+        bookIdInput.value = "";
         titleInput.value = "";
         return;
     }
 
-    const { data: book } = await supabaseClient
-        .from('books')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+    // Filter books by ID or Title
+    const matches = allBooks.filter(book => 
+        book.id.toLowerCase().includes(val) || 
+        book.title.toLowerCase().includes(val)
+    );
 
-    if (book) {
-        titleInput.value = book.title;
-        showMessage(borrowMessage, "Book found: " + book.title, "success");
-    } else {
-        titleInput.value = "";
-        showMessage(borrowMessage, "No book found with ID " + id + ".", "error");
+    if (matches.length === 0) {
+        autocompleteList.style.display = "none";
+        return;
     }
-}
+
+    autocompleteList.style.display = "block";
+
+    matches.forEach(book => {
+        const item = document.createElement("div");
+        // Add a visual indicator if the book is already borrowed
+        const statusText = book.available ? "" : " (Borrowed)";
+        const statusColor = book.available ? "" : "color: #d9534f;";
+        
+        item.innerHTML = `<strong>${book.id}</strong> - ${book.title} <span style="${statusColor}">${statusText}</span>`;
+        
+        item.addEventListener("click", function() {
+            searchInput.value = book.id + " - " + book.title;
+            bookIdInput.value = book.id;
+            titleInput.value = book.title;
+            autocompleteList.style.display = "none";
+        });
+        
+        autocompleteList.appendChild(item);
+    });
+});
+
+// Close autocomplete if clicking outside
+document.addEventListener("click", function(e) {
+    if (e.target !== searchInput) {
+        autocompleteList.style.display = "none";
+    }
+});
 
 async function borrowBook() {
-    const bookId    = bookIdInput.value.trim().toUpperCase();
+    const bookId    = bookIdInput.value.trim();
     const studentId = studentIdInput.value.trim();
-    
-    // Use the actual current date for the database
-    const today = new Date().toISOString().split("T")[0];
+    const today     = new Date().toISOString().split("T")[0];
 
     if (!bookId || !studentId) {
-        showMessage(borrowMessage, "Book ID and Student ID are required.", "error");
+        showMessage(borrowMessage, "Please select a book and enter a Student ID.", "error");
         return;
     }
 
     if (!titleInput.value) {
-        showMessage(borrowMessage, "Please enter a valid Book ID.", "error");
+        showMessage(borrowMessage, "Please select a valid book from the list.", "error");
         return;
     }
 
@@ -222,18 +296,21 @@ async function borrowBook() {
         await supabaseClient.from('books').update({ available: false }).eq('id', bookId);
         
         showMessage(borrowMessage, "Book borrowed successfully. Due on " + formatDate(addDays(today, 7)) + ".", "success");
+        searchInput.value = "";
         bookIdInput.value = "";
         titleInput.value = "";
+        
         fetchBorrowings();
+        fetchBooks(); // Refresh book list to update availability status
     }
 }
 
 async function returnBook() {
-    const bookId    = bookIdInput.value.trim().toUpperCase();
+    const bookId    = bookIdInput.value.trim();
     const studentId = studentIdInput.value.trim();
 
     if (!bookId || !studentId) {
-        showMessage(borrowMessage, "Book ID and Student ID are required to return.", "error");
+        showMessage(borrowMessage, "Please select a book and enter a Student ID to return.", "error");
         return;
     }
 
@@ -257,9 +334,12 @@ async function returnBook() {
         await supabaseClient.from('books').update({ available: true }).eq('id', bookId);
 
         showMessage(borrowMessage, "Book returned successfully.", "success");
+        searchInput.value = "";
         bookIdInput.value = "";
         titleInput.value = "";
+        
         fetchBorrowings();
+        fetchBooks();
     }
 }
 
@@ -268,7 +348,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     borrowForm.style.display = "block";
     
-    // Set the date input to show the current full date and time
     const now = new Date();
     const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     dateInput.value = now.toLocaleDateString('en-US', options);
@@ -295,16 +374,11 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelector('.filter-btn[data-filter="all"]').style.background = "var(--primary)";
     document.querySelector('.filter-btn[data-filter="all"]').style.color = "white";
 
-    let typingTimer;
-    bookIdInput.addEventListener("input", function() {
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(lookupBook, 500);
-    });
-
     btnBorrow.addEventListener("click", borrowBook);
     btnReturn.addEventListener("click", returnBook);
 
     fetchBorrowings();
+    fetchBooks(); // Pre-load books for the autocomplete
 });
 </script>
 </body>
