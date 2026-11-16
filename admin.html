@@ -128,7 +128,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const settingsMessage = document.getElementById("settings-message");
     const annMessage = document.getElementById("announcement-message");
 
-    // Load Users
     async function loadUsers() {
         const { data: users, error } = await supabaseClient.from('users').select('*').order('role', { ascending: true });
 
@@ -150,13 +149,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                     <td>${escapeHtml(userRow.username)}</td>
                     <td style="text-transform: capitalize; color: ${roleColor}; font-weight: bold;">${userRow.role || 'student'}</td>
                     <td><span style="color: green; font-weight: bold;">Active</span></td>
-                    <td><button class="secondary" style="padding: 6px 12px; font-size: 12px;" onclick="deleteUser('${userRow.username}')">Delete</button></td>
+                    <td><button class="secondary" style="padding: 6px 12px; font-size: 12px;" onclick="window.deleteUser('${userRow.username}')">Delete</button></td>
                 </tr>`;
             });
         }
     }
 
-    // Add User
     document.getElementById("btn-add-user").addEventListener("click", async function() {
         const username = prompt("Enter new username:");
         if (!username) return;
@@ -180,10 +178,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     });
 
-    // Delete User (Global function so the inline onclick works)
+    // Attach to the window object so the inline HTML button can find it
     window.deleteUser = async function(username) {
         if (!confirm("Are you sure you want to delete " + username + "?")) return;
+        
         const { error } = await supabaseClient.from('users').delete().eq('username', username);
+        
         if (error) {
             alert("Error deleting: " + error.message);
         } else {
@@ -191,7 +191,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     };
 
-    // Load Settings
     const { data: settingsData } = await supabaseClient.from('settings').select('*');
     const settings = {};
     if (settingsData) {
@@ -203,7 +202,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     document.getElementById("setting-name").value = settings.system_name || "";
     document.getElementById("header-system-name").textContent = settings.system_name || "Library Management System";
 
-    // Save Settings
     document.getElementById("btn-save-settings").addEventListener("click", async function() {
         const hours = document.getElementById("setting-hours").value.trim();
         const capacity = document.getElementById("setting-capacity").value;
@@ -235,7 +233,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     });
 
-    // Post Announcement
     document.getElementById("btn-post-announcement").addEventListener("click", async function() {
         const title = document.getElementById("ann-title").value.trim();
         const content = document.getElementById("ann-content").value.trim();
