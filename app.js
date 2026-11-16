@@ -1,11 +1,5 @@
-/* =========================================================
-   app.js — shared logic loaded on EVERY page
-   ========================================================= */
-
-/* ---------- 1. SUPABASE CONFIG ---------- */
 const SUPABASE_URL = "https://qkdlgxeapgnbqjtmrypw.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_MlmH0bwg65-StlMCE37Eow_1TZswdr_";
-
 const SUPABASE_READY = !SUPABASE_URL.includes("YOUR-PROJECT") && !SUPABASE_ANON_KEY.includes("YOUR-ANON-KEY");
 
 let supabaseClient = null;
@@ -13,7 +7,6 @@ if (SUPABASE_READY && window.supabase) {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-/* ---------- 2. NAVIGATION ---------- */
 const NAV_ITEMS = [
     { href: "dashboard.html",     label: "Home" },
     { href: "appointments.html",  label: "Appointments" },
@@ -27,7 +20,6 @@ const NAV_ITEMS = [
     { href: "admin.html",         label: "Admin", roles: ["admin"] }
 ];
 
-/* ---------- 3. SESSION HELPERS ---------- */
 function getCurrentUser() {
     try {
         return JSON.parse(localStorage.getItem("libraryUser"));
@@ -59,7 +51,7 @@ function logoutAndRedirect(event) {
     window.location.href = "index.html"; 
 }
 
-/* ---------- 4. SHARED HELPERS ---------- */
+// Sanitize inputs to prevent basic XSS
 function escapeHtml(value) {
     return String(value == null ? "" : value)
         .replace(/&/g, "&amp;")
@@ -93,7 +85,6 @@ function showMessage(element, text, type) {
     element.classList.remove("hidden");
 }
 
-/* ---------- 5. NAV RENDERING ---------- */
 function renderNav() {
     const nav = document.getElementById("main-nav");
     if (!nav) return;
@@ -105,6 +96,7 @@ function renderNav() {
     nav.innerHTML = "";
 
     NAV_ITEMS.forEach(function (item) {
+        // Skip rendering if the user's role doesn't have permission
         if (item.roles && !item.roles.includes(userRole)) {
             return; 
         }
@@ -124,7 +116,6 @@ function renderNav() {
     nav.appendChild(logout);
 }
 
-/* ---------- 6. PAGE BOOT & SECURITY GUARDS ---------- */
 document.addEventListener("DOMContentLoaded", function () {
     const isProtected = document.body.hasAttribute("data-protected");
 
@@ -135,6 +126,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const role = user.role || "student";
         const path = window.location.pathname;
 
+        // Route guards
         if (path.includes("admin.html") && role !== "admin") {
             alert("Access Denied. You do not have administrator privileges.");
             window.location.replace("dashboard.html");
@@ -164,6 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const user = getCurrentUser();
 
+    // Populate user info spans across all pages
     document.querySelectorAll("[data-user-name]").forEach(function (el) {
         el.textContent = user ? (user.full_name || user.username) : "--";
     });
@@ -181,7 +174,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-/* ---------- 7. ADMIN SPECIFIC FUNCTIONS ---------- */
 async function loadAdminUsers() {
     const tbody = document.getElementById("admin-user-table-body");
     if (!tbody) return; 
@@ -216,3 +208,22 @@ async function loadAdminUsers() {
         tbody.appendChild(tr);
     });
 }
+
+// Fetch the system name from settings and update the header dynamically
+async function loadGlobalSettings() {
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) return;
+
+    const { data } = await supabaseClient
+        .from('settings')
+        .select('value')
+        .eq('key', 'system_name')
+        .single();
+
+    if (data && data.value) {
+        const headerTitle = document.querySelector("header h2");
+        if (headerTitle) headerTitle.textContent = data.value;
+        document.title = document.title.replace("Library Management System", data.value);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", loadGlobalSettings);

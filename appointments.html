@@ -32,11 +32,6 @@
 
         <select id="appt-time">
             <option value="">Select Time Slot</option>
-            <option>8:00 AM - 9:00 AM</option>
-            <option>9:00 AM - 10:00 AM</option>
-            <option>10:00 AM - 11:00 AM</option>
-            <option>1:00 PM - 2:00 PM</option>
-            <option>2:00 PM - 3:00 PM</option>
         </select>
 
         <h3>Appointment Details</h3>
@@ -106,10 +101,10 @@ function renderCalendar() {
     const firstDay = new Date(currentYear, currentMonth, 1).getDay();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     
-    // Update Header
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     document.getElementById("calendar-month-year").textContent = monthNames[currentMonth] + " " + currentYear;
 
+    // Fill leading empty cells
     for (let i = 0; i < firstDay; i++) {
         const blank = document.createElement("div");
         blank.className = "empty";
@@ -183,7 +178,6 @@ document.getElementById("btn-book-appointment").addEventListener("click", async 
         return;
     }
 
-    // 1. Save Appointment to Supabase
     const newAppt = {
         student_id: studentId,
         student_name: name,
@@ -200,7 +194,7 @@ document.getElementById("btn-book-appointment").addEventListener("click", async 
         return;
     }
 
-    // 2. Automatically add to Queue
+    // Check if the student is already in the queue before inserting
     const { data: existing } = await supabaseClient
         .from('queue_entries').select('*').eq('student_id', studentId).eq('status', 'Waiting').limit(1);
 
@@ -214,7 +208,6 @@ document.getElementById("btn-book-appointment").addEventListener("click", async 
             student_id: studentId, student_name: name, queue_number: nextNumber, status: 'Waiting'
         }]);
 
-        // 3. Create Notification
         await supabaseClient.from('notifications').insert([{
             student_id: studentId,
             title: "Appointment Confirmed",
@@ -227,6 +220,24 @@ document.getElementById("btn-book-appointment").addEventListener("click", async 
     }
 
     renderAppointments();
+});
+
+// Generate time slots dynamically
+const timeSelect = document.getElementById("appt-time");
+const slots = [
+    "8:00 AM - 9:00 AM",
+    "9:00 AM - 10:00 AM",
+    "10:00 AM - 11:00 AM",
+    "1:00 PM - 2:00 PM",
+    "2:00 PM - 3:00 PM",
+    "3:00 PM - 4:00 PM"
+];
+
+slots.forEach(slot => {
+    const option = document.createElement("option");
+    option.value = slot;
+    option.textContent = slot;
+    timeSelect.appendChild(option);
 });
 
 document.addEventListener("DOMContentLoaded", function () {

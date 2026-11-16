@@ -28,37 +28,34 @@
         <h3>Quick Access</h3>
 
         <div class="card-container">
-
             <div class="card">
                 <h3>Books</h3>
                 <p>Search and check book availability.</p>
                 <button onclick="location.href='books.html'">Browse Books</button>
             </div>
-
             <div class="card">
                 <h3>Appointments</h3>
                 <p>Schedule your library visit.</p>
                 <button onclick="location.href='appointments.html'">Book Appointment</button>
             </div>
-
             <div class="card">
                 <h3>Queue Status</h3>
                 <p>Check your current queue position.</p>
                 <button onclick="location.href='queue.html'">View Queue</button>
             </div>
-
             <div class="card">
                 <h3>History</h3>
                 <p>View previous borrowing records.</p>
                 <button onclick="location.href='history.html'">View History</button>
             </div>
-
         </div>
 
         <h3>Announcements</h3>
 
-        <div class="placeholder">
-            <p>No announcements available.</p>
+        <div id="announcements-container">
+            <div class="placeholder">
+                <p>Loading announcements...</p>
+            </div>
         </div>
 
     </section>
@@ -71,5 +68,38 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async function() {
+    if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY || !supabaseClient) return;
+
+    const container = document.getElementById("announcements-container");
+
+    const { data: announcements, error } = await supabaseClient
+        .from('announcements')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        container.innerHTML = `<p style="color:red;">Error loading announcements: ${error.message}</p>`;
+        return;
+    }
+
+    if (announcements.length === 0) {
+        container.innerHTML = '<div class="placeholder"><p>No announcements available.</p></div>';
+        return;
+    }
+
+    container.innerHTML = "";
+    announcements.forEach(function(ann) {
+        container.innerHTML += `
+            <div class="placeholder">
+                <h3>${escapeHtml(ann.title)}</h3>
+                <p>${escapeHtml(ann.content)}</p>
+                <small class="muted">${formatDate(ann.created_at.split('T')[0])}</small>
+            </div>
+        `;
+    });
+});
+</script>
 </body>
 </html>
