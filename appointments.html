@@ -78,7 +78,6 @@
             <option>Other</option>
         </select>
 
-        <!-- NEW: Reserve Book Section with Autocomplete -->
         <div class="reservation-box">
             <label>
                 <input type="checkbox" id="chk-reserve"> 
@@ -94,7 +93,6 @@
                     <input type="text" id="reserve-search" placeholder="Type Book ID or Title..." autocomplete="off">
                     <div id="reserve-autocomplete-list" class="autocomplete-items"></div>
                 </div>
-                <!-- Hidden field to store the actual Book ID -->
                 <input type="hidden" id="reserve-book-id">
             </div>
         </div>
@@ -130,7 +128,6 @@ const selectedDateEl = document.getElementById("selected-date");
 const apptMessage = document.getElementById("appt-message");
 const apptTableBody = document.getElementById("appt-table-body");
 
-// Autocomplete elements for reservation
 const reserveSearchInput = document.getElementById("reserve-search");
 const reserveAutocompleteList = document.getElementById("reserve-autocomplete-list");
 const reserveBookIdInput = document.getElementById("reserve-book-id");
@@ -186,14 +183,12 @@ function renderCalendar() {
     }
 }
 
-// Load available books for the autocomplete
 async function loadAvailableBooks() {
     if (typeof SUPABASE_READY === 'undefined' || !SUPABASE_READY) return;
     const { data: books } = await supabaseClient.from('books').select('*').eq('available', true).order('title', { ascending: true });
     if (books) allAvailableBooks = books;
 }
 
-// Autocomplete Logic
 reserveSearchInput.addEventListener("input", function() {
     const val = this.value.trim().toLowerCase();
     reserveAutocompleteList.innerHTML = "";
@@ -219,25 +214,21 @@ reserveSearchInput.addEventListener("input", function() {
     matches.forEach(book => {
         const item = document.createElement("div");
         item.innerHTML = `<strong>${book.id}</strong> - ${book.title}`;
-        
         item.addEventListener("click", function() {
             reserveSearchInput.value = book.id + " - " + book.title;
             reserveBookIdInput.value = book.id;
             reserveAutocompleteList.style.display = "none";
         });
-        
         reserveAutocompleteList.appendChild(item);
     });
 });
 
-// Close autocomplete if clicking outside
 document.addEventListener("click", function(e) {
     if (e.target !== reserveSearchInput) {
         reserveAutocompleteList.style.display = "none";
     }
 });
 
-// Toggle the autocomplete on checkbox
 document.getElementById("chk-reserve").addEventListener("change", function() {
     document.getElementById("reserve-inputs").style.display = this.checked ? "block" : "none";
     if (this.checked) loadAvailableBooks();
@@ -304,6 +295,20 @@ document.getElementById("btn-book-appointment").addEventListener("click", async 
     const { data: existingBorrow } = await supabaseClient.from('borrowings').select('id').eq('student_id', studentId).eq('status', 'Borrowed').limit(1);
     if (existingBorrow && existingBorrow.length > 0) {
         showMessage(apptMessage, "You already have a borrowed book. Please return it before booking a new appointment.", "error");
+        return;
+    }
+
+    // NEW: Check for duplicate appointment
+    const { data: duplicateCheck } = await supabaseClient
+        .from('appointments')
+        .select('*')
+        .eq('student_id', studentId)
+        .eq('date', selectedDate)
+        .eq('time', time)
+        .limit(1);
+
+    if (duplicateCheck && duplicateCheck.length > 0) {
+        showMessage(apptMessage, "You already have an appointment booked for this exact date and time.", "error");
         return;
     }
 
