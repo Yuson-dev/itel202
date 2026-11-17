@@ -32,6 +32,7 @@ header {
     color: white;
     padding: 24px 40px;
     box-shadow: var(--shadow-sm);
+    width: 100%;
 }
 
 header h2 {
@@ -59,6 +60,7 @@ nav {
     position: sticky;
     top: 0;
     z-index: 100;
+    width: 100%;
 }
 
 .page {
@@ -195,6 +197,8 @@ tr:hover td {
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
     transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
 }
 
 .card:hover {
@@ -221,6 +225,7 @@ tr:hover td {
 .card p {
     color: var(--text-muted);
     font-size: 14px;
+    flex-grow: 1; 
 }
 
 .placeholder {
@@ -239,6 +244,7 @@ tr:hover td {
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 13px;
+    display: inline-block;
 }
 
 .login-container {
@@ -423,7 +429,6 @@ footer {
     transition: margin 0.3s ease;
 }
 
-/* The text that slides out */
 .nav-text {
     max-width: 0;
     opacity: 0;
@@ -461,7 +466,6 @@ footer {
     transform: translateX(10px);
 }
 
-/* Profile Dropdown */
 .profile-dropdown {
     position: relative;
     display: inline-block;
@@ -512,12 +516,50 @@ footer {
     display: block !important;
 }
 
+/* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
-    header { padding: 20px; }
-    .sidebar-layout { flex-direction: column; }
-    .sidebar { width: 100%; position: static; }
-    .page { margin: 15px auto; padding: 0 15px; }
-    table { display: block; overflow-x: auto; white-space: nowrap; }
-    .card-container { grid-template-columns: 1fr; }
-    nav { gap: 4px; padding: 10px; }
+    header { 
+        padding: 20px; 
+        width: 100%; 
+    }
+    
+    nav { 
+        width: 100%; 
+        justify-content: center; 
+        padding: 10px; 
+        gap: 8px;
+    }
+
+    .page { 
+        margin: 15px auto; 
+        padding: 0 15px; 
+    }
+
+    .sidebar-layout { 
+        flex-direction: column; 
+        width: 100%;
+    }
+
+    .sidebar { 
+        width: 100%; 
+        position: static; 
+    }
+
+    .main-content {
+        width: 100%;
+    }
+
+    table { 
+        display: block; 
+        overflow-x: auto; 
+        white-space: nowrap; 
+    }
+
+    .card-container { 
+        grid-template-columns: 1fr; 
+    }
+
+    .autocomplete-items {
+        width: 100%;
+    }
 }
